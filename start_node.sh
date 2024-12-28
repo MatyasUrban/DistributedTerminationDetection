@@ -34,12 +34,27 @@ if [[ "$severity" != "warning" && "$severity" != "critical" ]]; then
     usage
 fi
 
+# Function to clean up screen sessions
+cleanup_sessions() {
+  # Kill 'node' session if it exists
+  if screen -list | grep -q "node"; then
+    screen -S node -X quit
+    echo "Screen session 'node' terminated."
+  fi
+
+  # Kill 'logs' session if it exists
+  if screen -list | grep -q "logs"; then
+    screen -S logs -X quit
+    echo "Screen session 'logs' terminated."
+  fi
+}
+
 # Check if the 'node' screen session already exists
 if screen -list | grep -q "node"; then
   echo "Screen session 'node' already exists."
 else
   # Start the node.py script directly in a new screen session
-  screen -dmS node python3 node.py -s $severity
+  screen -dmS node bash -c "python3 node.py -s $severity; $(cleanup_sessions)"
   echo "Screen session 'node' started running node.py with severity '$severity'."
 fi
 
@@ -48,7 +63,7 @@ if screen -list | grep -q "logs"; then
   echo "Screen session 'logs' already exists."
 else
   # Start a screen session to tail the log file
-  screen -dmS logs tail -f node.log
+  screen -dmS logs bash -c "tail -f node.log"
   echo "Screen session 'logs' started to display node.log."
 fi
 
