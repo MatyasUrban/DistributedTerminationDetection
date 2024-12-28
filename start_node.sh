@@ -38,8 +38,8 @@ fi
 if screen -list | grep -q "node"; then
   echo "Screen session 'node' already exists."
 else
-  # Start the node.py script in a new screen session
-  screen -dmS node bash -c "python3 node.py -s $severity; exec bash"
+  # Start the node.py script directly in a new screen session
+  screen -dmS node python3 node.py -s $severity
   echo "Screen session 'node' started running node.py with severity '$severity'."
 fi
 
@@ -48,7 +48,7 @@ if screen -list | grep -q "logs"; then
   echo "Screen session 'logs' already exists."
 else
   # Start a screen session to tail the log file
-  screen -dmS logs bash -c "tail -f node.log; exec bash"
+  screen -dmS logs tail -f node.log
   echo "Screen session 'logs' started to display node.log."
 fi
 
