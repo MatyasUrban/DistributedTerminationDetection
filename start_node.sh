@@ -49,22 +49,22 @@ cleanup_sessions() {
   fi
 }
 
-# Check if the 'node' screen session already exists
-if screen -list | grep -q "node"; then
-  echo "Screen session 'node' already exists."
-else
-  # Start the node.py script directly in a new screen session
-  screen -dmS node bash -c "python3 node.py -s $severity; $(cleanup_sessions)"
-  echo "Screen session 'node' started running node.py with severity '$severity'."
-fi
-
-# Check if the 'logs' screen session already exists
+# Start the 'logs' session first to tail the log file
 if screen -list | grep -q "logs"; then
   echo "Screen session 'logs' already exists."
 else
   # Start a screen session to tail the log file
   screen -dmS logs bash -c "tail -f node.log"
   echo "Screen session 'logs' started to display node.log."
+fi
+
+# Check if the 'node' screen session already exists
+if screen -list | grep -q "node"; then
+  echo "Screen session 'node' already exists."
+else
+  # Start the node.py script in a new screen session and handle cleanup
+  screen -dmS node bash -c "python3 node.py -s $severity; screen -S logs -X quit; $(cleanup_sessions)"
+  echo "Screen session 'node' started running node.py with severity '$severity'."
 fi
 
 # Attach to the 'node' screen session
