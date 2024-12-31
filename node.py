@@ -149,7 +149,5 @@ class Node:
 
 # Main Function
 if __name__ == "__main__":
-    logger.debug("Main program started.")
     node = Node()
     node.start()
-    logger.debug("Main program exiting.")
