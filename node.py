@@ -1,4 +1,5 @@
 import logging
+import socket
 import subprocess
 import threading
 import sys
@@ -27,6 +28,7 @@ class Node:
         self.log(logging.DEBUG, "Node initialization started.")
         self.id = None
         self.ip = self.get_local_ip()
+        self.port = 5000
         self.online = False
         self.logical_clock = 0
         self.delay = 0  # Default delay for messages
@@ -137,7 +139,68 @@ class Node:
                 print(f"Error: {e}")
                 sys.exit(1)
 
+    def send_message(self, target_id, message):
+        """Sends a message to a target node."""
+        target_ip = ID_IP_MAP.get(target_id)
+        target_port = 5000
+        if not target_ip:
+            self.log(logging.ERROR, f"Invalid target node ID: {target_id}")
+            return
+
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.connect((target_ip, target_port))
+                client_socket.sendall(message.encode())
+                self.log(logging.INFO, f"Sent message to Node {target_id}: {message}")
+        except Exception as e:
+            self.log(logging.ERROR, f"Failed to send message to Node {target_id}: {e}")
+
+    def handle_incoming_message(self, conn):
+        """Processes incoming messages from a connection."""
+        try:
+            while True:
+                data = conn.recv(1024)  # Receive data (1024 bytes at a time)
+                if not data:
+                    break
+                message = data.decode()
+                self.log(logging.INFO, f"Received message: {message}")
+        except Exception as e:
+            self.log(logging.ERROR, f"Error handling incoming message: {e}")
+        finally:
+            conn.close()
+            self.log(logging.INFO, "Connection closed.")
+
+    def accept_connections(self):
+        """Accepts incoming connections and spawns threads to handle them."""
+        self.log(logging.INFO, "Server is now accepting connections.")
+        while True:
+            try:
+                conn, addr = self.server_socket.accept()
+                self.log(logging.INFO, f"Accepted connection from {addr}")
+                threading.Thread(target=self.handle_incoming_message, args=(conn,), daemon=True).start()
+            except Exception as e:
+                self.log(logging.ERROR, f"Error accepting connection: {e}")
+                break
+
+    def start_server(self):
+        """Initializes and starts the server socket for incoming connections."""
+        try:
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.bind((self.ip, self.port))
+            self.server_socket.listen(5)  # Listen for up to 5 connections
+            self.log(logging.INFO, f"Server socket started on {self.ip}:{self.port}")
+
+            threading.Thread(target=self.accept_connections, daemon=True).start()
+        except Exception as e:
+            self.log(logging.CRITICAL, f"Failed to start server socket: {e}")
+
+    def start_networking(self):
+        """Starts the server socket and prepares for communication."""
+        self.start_server()
+        self.log(logging.INFO, "Networking components initialized.")
+
     def start(self):
+        self.start_networking()
         self.handle_cli()
 
 
