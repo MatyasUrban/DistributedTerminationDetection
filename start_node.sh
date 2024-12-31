@@ -12,6 +12,9 @@ usage() {
   exit 1
 }
 
+# Clear the node.log file at the start
+> node.log
+
 # Default log filter (no exclusions)
 log_filter="."
 
