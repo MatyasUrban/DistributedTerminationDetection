@@ -33,18 +33,15 @@ else
   log_filter=""
 fi
 
-# Create a named screen session
-screen -S node-session -dm bash -c "python3 node.py; read -p 'Python process ended. Press Enter to close...'"
+# Start Python process in a new screen session
+screen -S python-session -dm bash -c "python3 node.py; read -p 'Python process ended. Press Enter to close...'"
 
-# Add a new window for log-tailing
-screen -S node-session -X screen bash -c "tail -f node.log | grep $log_filter --line-buffered; read -p 'Log tailing ended. Press Enter to close...'"
+# Start log-tailing process in another screen session
+screen -S logs-session -dm bash -c "tail -f node.log | grep $log_filter --line-buffered; read -p 'Log tailing ended. Press Enter to close...'"
 
-# Split the screen horizontally
-screen -S node-session -X split -v
+# Arrange the sessions side by side horizontally
+screen -S python-session -X split -h
+screen -S python-session -X screen -t logs-session screen -r logs-session
 
-# Focus on the top region (Window 0) for Python CLI
-screen -S node-session -X focus
-screen -S node-session -X select 0
-
-# Reattach to the session
-screen -r node-session
+# Reattach to the Python session
+screen -r python-session
