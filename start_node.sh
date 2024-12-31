@@ -30,7 +30,9 @@ shift $((OPTIND - 1))
 
 # Process log filter
 if [[ "$log_filter" != "." ]]; then
-  log_filter=$(echo "$log_filter" | sed 's/^\|//')  # Remove leading "\|"
+  log_filter=$(echo "$log_filter" | sed 's/^\|//')
+else
+  log_filter=""
 fi
 
 # Start live tailing with filtering
