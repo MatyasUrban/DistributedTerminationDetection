@@ -30,12 +30,12 @@ shift $((OPTIND - 1))
 
 # Process log filter
 if [[ "$log_filter" != "." ]]; then
-  log_filter=$(echo $log_filter | sed 's/^\|//')  # Remove leading "\|"
+  log_filter=$(echo "$log_filter" | sed 's/^\|//')  # Remove leading "\|"
 fi
 
 # Start live tailing with filtering
 if [[ -n "$log_filter" ]]; then
-  tail -f node.log | grep -vE "$log_filter" --line-buffered
+  tail -n 0 -f node.log | grep --line-buffered -vE "$log_filter"
 else
-  tail -f node.log
+  tail -n 0 -f node.log
 fi
