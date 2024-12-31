@@ -1,5 +1,5 @@
 import logging
-import socket
+import subprocess
 import threading
 import sys
 
@@ -21,6 +21,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger()
 
+# Global Node Instance
+node = None  # This will be initialized in the main function
+
+
 # Node Class
 class Node:
     def __init__(self):
@@ -29,11 +33,25 @@ class Node:
         self.online = False
         self.logical_clock = 0
         self.delay = 0  # Default delay for messages
+        self.lock = threading.Lock()  # Lock for thread-safe operations
         self.init_node_id()
 
     def get_local_ip(self):
-        hostname = socket.gethostname()
-        return socket.gethostbyname(hostname)
+        try:
+            result = subprocess.run(["ip", "a"], capture_output=True, text=True, check=True)
+            lines = result.stdout.splitlines()
+
+            interface_found = False
+            for line in lines:
+                if "enp0s1" in line:
+                    interface_found = True
+                if interface_found and "inet " in line:
+                    ip_address = line.strip().split()[1].split('/')[0]
+                    return ip_address
+            raise ValueError("enp0s1 interface not found or no IPv4 address assigned.")
+        except Exception as e:
+            self.log(logging.CRITICAL, "Failed to determine Node ID from IP.")
+            return "127.0.0.1"
 
     def init_node_id(self):
         for node_id, ip in ID_IP_MAP.items():
@@ -41,68 +59,80 @@ class Node:
                 self.id = node_id
                 break
         if self.id is None:
-            logger.critical("Failed to determine Node ID from IP.", extra={"node_id": "N/A", "clock": "N/A"})
+            self.log(logging.CRITICAL, "Failed to determine Node ID from IP.")
             sys.exit(1)
-        logger.info(f"Initialized as Node {self.id} with IP {self.ip}", extra={"node_id": self.id, "clock": self.logical_clock})
+        self.log(logging.INFO, f"Initialized as Node {self.id} with IP {self.ip}")
 
     def log(self, level, message):
-        """Logs a message with the node's logical clock."""
         global logger
-        logger.log(level, message, extra={"node_id": self.id, "clock": self.logical_clock})
+        logger.log(
+            level,
+            message,
+            extra={
+                "node_id": getattr(self, "id", "N/A"),
+                "clock": getattr(self, "logical_clock", "N/A")
+            }
+        )
 
     def join(self):
-        if not self.online:
-            self.online = True
-            self.log(logging.INFO, "Node has joined the topology.")
-        else:
-            self.log(logging.WARNING, "Node is already online.")
+        with self.lock:  # Ensure thread-safe access
+            if not self.online:
+                self.online = True
+                self.log(logging.INFO, "Node has joined the topology.")
+            else:
+                self.log(logging.WARNING, "Node is already online.")
 
     def leave(self):
-        if self.online:
-            self.online = False
-            self.log(logging.INFO, "Node has left the topology.")
-        else:
-            self.log(logging.WARNING, "Node is already offline.")
+        with self.lock:  # Ensure thread-safe access
+            if self.online:
+                self.online = False
+                self.log(logging.INFO, "Node has left the topology.")
+            else:
+                self.log(logging.WARNING, "Node is already offline.")
 
     def status(self):
-        status_info = (
-            f"Node ID: {self.id}\n"
-            f"IP Address: {self.ip}\n"
-            f"Online: {self.online}\n"
-            f"Logical Clock: {self.logical_clock}\n"
-            f"Message Delay: {self.delay}s\n"
-        )
-        print(status_info)
-        self.log(logging.INFO, "Status requested.")
+        with self.lock:  # Ensure thread-safe access
+            status_info = (
+                f"Node ID: {self.id}\n"
+                f"IP Address: {self.ip}\n"
+                f"Online: {self.online}\n"
+                f"Logical Clock: {self.logical_clock}\n"
+                f"Message Delay: {self.delay}s\n"
+            )
+            print(status_info)
+            self.log(logging.INFO, "Status requested.")
 
-# Command-Line Interface (CLI)
-def cli(node):
-    print("Node CLI is ready. Type your command.")
-    while True:
-        try:
-            command = input("Enter command: ").strip().lower()
-            if command == "join":
-                node.join()
-            elif command == "leave":
-                node.leave()
-            elif command == "status":
-                node.status()
-            elif command == "quit":
-                logger.info("Node is shutting down.", extra={"node_id": node.id, "clock": node.logical_clock})
-                exit(0)
-            else:
-                print("Unknown command.")
-        except KeyboardInterrupt:
-            print("\nShutting down node.")
-            exit(0)
+    def handle_cli(self):
+        """Handles CLI commands in a dedicated thread."""
+        print("Node CLI is ready. Type your command.")
+        while True:
+            try:
+                command = input("Enter command: ").strip().lower()
+                if command == "join":
+                    self.join()
+                elif command == "leave":
+                    self.leave()
+                elif command == "status":
+                    self.status()
+                elif command == "quit":
+                    self.log(logging.INFO, "Node is shutting down.")
+                    sys.exit(0)
+                else:
+                    print("Unknown command.")
+            except KeyboardInterrupt:
+                print("\nShutting down node.")
+                sys.exit(0)
+
+    def start(self):
+        """Starts all threads for the node."""
+        cli_thread = threading.Thread(target=self.handle_cli)
+        cli_thread.daemon = True
+        cli_thread.start()
+        cli_thread.join()
+
 
 # Main Function
 def main():
-    node = Node()
-    cli_thread = threading.Thread(target=cli, args=(node,))
-    cli_thread.daemon = True
-    cli_thread.start()
-    cli_thread.join()
-
-if __name__ == "__main__":
-    main()
+    global node
+    node = Node()  # Initialize the global node instance
+    node.start()   # Start the node
