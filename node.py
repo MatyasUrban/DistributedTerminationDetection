@@ -21,10 +21,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger()
 
-# Global Node Instance
-node = None  # This will be initialized in the main function
-
-
 # Node Class
 class Node:
     def __init__(self):
@@ -131,7 +127,6 @@ class Node:
 
 
 # Main Function
-def main():
-    global node
-    node = Node()  # Initialize the global node instance
-    node.start()   # Start the node
+if __name__ == "__main__":
+    node = Node()
+    node.start()
