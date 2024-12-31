@@ -138,13 +138,7 @@ class Node:
                 sys.exit(1)
 
     def start(self):
-        """Starts all threads for the node."""
-        self.log(logging.DEBUG, "Starting CLI thread.")
-        cli_thread = threading.Thread(target=self.handle_cli)
-        cli_thread.daemon = True
-        cli_thread.start()
-        cli_thread.join()
-        self.log(logging.DEBUG, "CLI thread has terminated.")
+        self.handle_cli()
 
 
 # Main Function
