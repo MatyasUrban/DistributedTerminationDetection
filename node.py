@@ -17,7 +17,7 @@ log_file = "node.log"
 logging.basicConfig(
     filename=log_file,
     level=logging.DEBUG,
-    format="%(levelname)s - Node: %(node_id)s - Clock: %(clock)s - %(message)s"
+    format="%(levelname)s - %(asctime)s - Node: %(node_id)s - Logical Clock: %(clock)s - %(message)s",
 )
 logger = logging.getLogger()
 
