@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# Parse arguments
 usage() {
   echo "Usage: $0 [-i | -c | -d | -w | -e]"
   echo "  -i  Exclude INFO logs"
@@ -34,16 +33,9 @@ else
   log_filter=""
 fi
 
-# Create a named screen session
 screen -S node-session -dm bash -c "python3 node.py; screen -S node-session -X quit"
-
-# Add a second window for log-tailing
 screen -S node-session -X screen bash -c "tail -f node.log | grep $log_filter --line-buffered; screen -S node-session -X quit"
-
-# Split the screen horizontally
 screen -S node-session -X split -v
 screen -S node-session -X focus
 screen -S node-session -X select 0
-
-# Reattach to the session
 screen -r node-session
