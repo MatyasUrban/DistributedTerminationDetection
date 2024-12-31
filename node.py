@@ -128,7 +128,6 @@ class Node:
         cli_thread = threading.Thread(target=self.handle_cli)
         cli_thread.daemon = True
         cli_thread.start()
-        cli_thread.join()
 
 
 # Main Function
