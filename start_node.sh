@@ -34,8 +34,16 @@ else
   log_filter=""
 fi
 
-# Start the Python node in a new terminal
-gnome-terminal -- bash -c "python3 node.py; exit"
+# Create a named screen session
+screen -S node-session -dm bash -c "python3 node.py; screen -S node-session -X quit"
 
-# Start the log tailing in another terminal
-gnome-terminal -- bash -c "tail -f node.log | grep $log_filter --line-buffered; exit"
+# Add a second window for log-tailing
+screen -S node-session -X screen bash -c "tail -f node.log | grep $log_filter --line-buffered; screen -S node-session -X quit"
+
+# Split the screen horizontally
+screen -S node-session -X split -v
+screen -S node-session -X focus
+screen -S node-session -X select 0
+
+# Reattach to the session
+screen -r node-session
