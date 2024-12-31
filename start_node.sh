@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Display usage information
 usage() {
   echo "Usage: $0 [-i | -c | -d | -w | -e]"
   echo "  -i  Exclude INFO logs"
@@ -11,8 +12,10 @@ usage() {
   exit 1
 }
 
+# Default log filter (no exclusions)
 log_filter="."
 
+# Parse command-line options
 while getopts ":icdwe" opt; do
   case ${opt} in
     i ) log_filter="${log_filter}\|INFO" ;;
@@ -25,23 +28,13 @@ while getopts ":icdwe" opt; do
 done
 shift $((OPTIND - 1))
 
-# Remove leading "\|" if filters are set
+# Process log filter
 if [[ "$log_filter" != "." ]]; then
-  log_filter=$(echo $log_filter | sed 's/^\|//')
-  log_filter="-vE \"$log_filter\""  # Use `grep -vE` for exclusion
+  log_filter=$(echo $log_filter | sed 's/^\|//')  # Remove leading "\|"
+  log_filter="-vE \"$log_filter\""  # Create grep exclusion filter
 else
   log_filter=""
 fi
 
-# Start Python process in a new screen session
-screen -S python-session -dm bash -c "python3 node.py; read -p 'Python process ended. Press Enter to close...'"
-
-# Start log-tailing process in another screen session
-screen -S logs-session -dm bash -c "tail -f node.log | grep $log_filter --line-buffered; read -p 'Log tailing ended. Press Enter to close...'"
-
-# Arrange the sessions side by side horizontally
-screen -S python-session -X split -h
-screen -S python-session -X screen -t logs-session screen -r logs-session
-
-# Reattach to the Python session
-screen -r python-session
+# Start live tailing with filtering
+eval "tail -f node.log | grep $log_filter --line-buffered"
