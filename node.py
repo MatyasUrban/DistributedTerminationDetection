@@ -5,6 +5,7 @@ import threading
 import sys
 import time
 import queue
+import json
 
 
 # Predefined Node ID-IP Mapping
@@ -118,7 +119,7 @@ class Node:
                 if self.delay > 0:
                     self.log(logging.INFO, f"Delaying message to Node {target_id} by {self.delay} seconds.")
                     time.sleep(self.delay)
-                self.send_message(target_id, message)
+                self.send_message(target_id, msg_type, msg_content)
             except queue.Empty:
                 continue
             except Exception as e:
@@ -214,8 +215,9 @@ class Node:
                 elif command == "delay":
                     self.set_delay(content)
                 elif command == "send":
-                    target_id, message = content[0], content[1]
-                    node.enqueue_message(int(target_id), message)
+                    target_id = int(content[0])
+                    message_text = " ".join(content[1:])  # capture full text
+                    node.enqueue_message(target_id, ("TEXT", message_text))
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
@@ -235,37 +237,97 @@ class Node:
                 print(f"Error: {e}")
                 sys.exit(1)
 
-    def send_message(self, target_id, message):
-        """Sends a message to a target node."""
+    def send_message(self, target_id, message_type, message_content=None, replying_to=None):
+        """
+        Sends a JSON-structured message to a target node, updating local lamport clock.
+        """
         target_ip = ID_IP_MAP.get(target_id)
         target_port = 5000
         if not target_ip:
             self.log(logging.ERROR, f"Invalid target node ID: {target_id}")
             return
 
+        # Build the JSON payload
+        json_payload = self.build_message(message_type, message_content, replying_to)
+
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
                 client_socket.connect((target_ip, target_port))
-                client_socket.sendall(message.encode())
-                self.log(logging.INFO, f"Sent message to Node {target_id}: {message}")
+                client_socket.sendall(json_payload.encode("utf-8"))
+                self.log(logging.INFO, f"Sent message to Node {target_id}: {json_payload}")
         except Exception as e:
             self.log(logging.ERROR, f"Failed to send message to Node {target_id}: {e}")
+
+    def build_message(self, message_type, message_content=None, replying_to=None):
+        """
+        Builds a JSON message with structured fields:
+        {
+          "sender_id": <number>,
+          "sender_clock": <number>,
+          "message_id": "senderId-senderClock" or a UUID,
+          "message_type": <string>,
+          "message_content": <string or null>,
+          "replying_to": <original_message_id or null>
+        }
+        """
+        # Increment logical clock before sending
+        with self.lock:
+            self.logical_clock += 1
+            sender_clock = self.logical_clock
+            sender_id = self.id
+
+        message_id = f"{sender_id}-{sender_clock}"  # Or use: str(uuid.uuid4()) for uniqueness
+        payload = {
+            "sender_id": sender_id,
+            "sender_clock": sender_clock,
+            "message_id": message_id,
+            "message_type": message_type,
+            "message_content": message_content,
+            "replying_to": replying_to
+        }
+        return json.dumps(payload)
+    def parse_message(self, raw_data):
+        """
+        Parses the raw JSON data into a Python dict and updates local logical clock.
+        Returns the parsed dictionary or None if invalid.
+        """
+        try:
+            payload = json.loads(raw_data)
+            # Extract sender clock
+            sender_clock = payload.get("sender_clock", 0)
+            # Update local logical clock: max(local, sender) + 1
+            with self.lock:
+                self.logical_clock = max(self.logical_clock, sender_clock) + 1
+            return payload
+        except json.JSONDecodeError:
+            self.log(logging.WARNING, f"Failed to decode JSON: {raw_data}")
+            return None
+        except Exception as e:
+            self.log(logging.ERROR, f"Error parsing message: {e}")
+            return None
 
     def handle_incoming_message(self, conn):
         """Processes incoming messages from a connection."""
         try:
             while True:
-                data = conn.recv(1024)  # Receive data (1024 bytes at a time)
+                data = conn.recv(1024)
                 if not data:
                     break
-                message = data.decode()
-                self.log(logging.INFO, f"Received message: {message}")
+                raw_message = data.decode("utf-8")
+                payload = self.parse_message(raw_message)
+                if payload:
+                    sender_id = payload.get("sender_id")
+                    message_id = payload.get("message_id")
+                    message_type = payload.get("message_type")
+                    message_content = payload.get("message_content")
+                    self.log(logging.INFO, f"Received {message_type} message from Node {sender_id}: {message_content} (Message ID: {message_id})")
+                else:
+                    self.log(logging.WARNING, f"Received invalid or unparseable message: {raw_message}")
         except Exception as e:
             self.log(logging.ERROR, f"Error handling incoming message: {e}")
         finally:
             conn.close()
             self.log(logging.INFO, "Connection closed.")
-
 
     def start(self):
         self.handle_cli()
