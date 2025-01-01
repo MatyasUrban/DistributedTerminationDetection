@@ -89,16 +89,24 @@ class Node:
         """Adds a message to the outgoing queue."""
         self.outgoing_queue.put((target_id, message))
         self.log(logging.INFO, f"Enqueued message to Node {target_id}: {message}")
+
     def accept_connections(self):
         """Accepts incoming connections and handles them."""
         self.log(logging.INFO, "Server is now accepting connections.")
-        while self.online:  # Run only when the node is online
+        while self.online:
             try:
                 conn, addr = self.server_socket.accept()
+                if not self.online:  # If the server is offline, ignore the connection
+                    conn.close()
+                    break
                 self.log(logging.INFO, f"Accepted connection from {addr}")
                 threading.Thread(target=self.handle_incoming_message, args=(conn,), daemon=True).start()
+            except OSError:
+                # Socket was closed; break out of the loop
+                self.log(logging.INFO, "Server socket has been closed; stopping connection acceptance.")
+                break
             except Exception as e:
-                if self.online:  # Log only if the server was expected to be running
+                if self.online:  # Log errors only if the server was expected to be running
                     self.log(logging.ERROR, f"Error accepting connection: {e}")
 
     def process_outgoing_messages(self):
@@ -135,36 +143,61 @@ class Node:
         except Exception as e:
             self.log(logging.CRITICAL, f"Failed to start networking: {e}")
 
-    def join(self):
-        with self.lock:  # Ensure thread-safe access
-            if not self.online:
-                self.online = True
-                self.start_networking()  # Start networking components
-                self.log(logging.INFO, "Node has joined the topology.")
-            else:
-                self.log(logging.WARNING, "Node is already online.")
+    def set_status(self, status):
+        """
+        Sets the node's online status and starts or stops networking components accordingly.
+        """
+        with self.lock:  # Ensure thread-safe operations
+            if status:
+                if not self.online:
+                    try:
+                        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        self.server_socket.bind((self.ip, self.port))
+                        self.server_socket.listen(5)
+                        self.log(logging.INFO, f"Server socket started on {self.ip}:{self.port}")
 
-    def stop_networking(self):
-        """Stops the networking components and closes the server socket."""
-        try:
-            self.online = False  # Signal all threads to stop
-            if self.server_socket:
-                self.server_socket.close()
-                self.server_socket = None
-                self.log(logging.INFO, "Server socket has been closed.")
+                        # Start threads for networking
+                        self.incoming_connections_thread = threading.Thread(
+                            target=self.accept_connections, daemon=True
+                        )
+                        self.incoming_connections_thread.start()
+
+                        self.outgoing_connections_thread = threading.Thread(
+                            target=self.process_outgoing_messages, daemon=True
+                        )
+                        self.outgoing_connections_thread.start()
+                        self.log(logging.INFO, "Networking components initialized.")
+                        self.online = True
+                    except Exception as e:
+                        self.online = False  # Rollback state on failure
+                        self.log(logging.CRITICAL, f"Failed to start networking: {e}")
+                else:
+                    self.log(logging.WARNING, "Node is already online.")
             else:
-                self.log(logging.WARNING, "Server socket is already closed.")
-        except Exception as e:
-            self.log(logging.ERROR, f"Error stopping networking: {e}")
+                if self.online:
+                    try:
+                        if self.server_socket:
+                            self.server_socket.close()
+                            self.server_socket = None
+                            self.log(logging.INFO, "Server socket has been closed.")
+                        else:
+                            self.log(logging.WARNING, "Server socket was already closed.")
+                        self.log(logging.INFO, "Networking components shut down.")
+                        self.online = False
+                    except Exception as e:
+                        self.log(logging.ERROR, f"Error stopping networking: {e}")
+                else:
+                    self.log(logging.WARNING, "Node is already offline.")
+
+    def join(self):
+        with self.lock:
+            self.set_status(True)  # Turn networking on
+            self.log(logging.INFO, "Node has joined the topology.")
 
     def leave(self):
-        with self.lock:  # Ensure thread-safe access
-            if self.online:
-                self.stop_networking()  # Stop networking components
-                self.online = False
-                self.log(logging.INFO, "Node has left the topology.")
-            else:
-                self.log(logging.WARNING, "Node is already offline.")
+        with self.lock:
+            self.set_status(False)  # Turn networking off
+            self.log(logging.INFO, "Node has left the topology.")
 
     def status(self):
         with self.lock:  # Ensure thread-safe access
