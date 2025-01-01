@@ -4,7 +4,7 @@ import subprocess
 import threading
 import sys
 import time
-from queue import Queue
+import queue
 
 
 # Predefined Node ID-IP Mapping
@@ -39,7 +39,7 @@ class Node:
         self.init_node_id()
         self.log(logging.DEBUG, "Node initialization completed.")
         self.server_socket = None
-        self.outgoing_queue = Queue()
+        self.outgoing_queue = queue.Queue()
         self.outgoing_connections_thread = None
         self.incoming_connections_thread = None
 
@@ -111,11 +111,11 @@ class Node:
                     self.log(logging.INFO, f"Delaying message to Node {target_id} by {self.delay} seconds.")
                     time.sleep(self.delay)
                 self.send_message(target_id, message)
+            except queue.Empty:
+                continue
             except Exception as e:
                 if self.online:  # Log errors only if the node is still online
                     self.log(logging.ERROR, f"Error processing outgoing message: {e}")
-            except Queue.empty():  # If queue is empty, loop continues
-                continue
 
     def start_networking(self):
         """Initializes and starts the networking components."""
@@ -174,11 +174,11 @@ class Node:
                 f"IP Address: {self.ip}\n"
                 f"Online: {self.online}\n"
                 f"Logical Clock: {self.logical_clock}\n"
-                f"Message Delay: {self.delay}s\n"
+                f"Message Delay: {self.delay}ms\n"
             )
             print(status_info)
             self.log(logging.INFO, "Status displayed to user.")
-    def delay(self, content):
+    def set_delay(self, content):
         self.log(logging.DEBUG, "Delay change requested.")
         self.delay = int(content[0])
         self.log(logging.INFO, f"Delay set to: {self.delay}s.")
@@ -192,7 +192,7 @@ class Node:
                 command = full_command[0]
                 content = None
                 if len(full_command)>1:
-                    content = full_command[1]
+                    content = full_command[1:]
                 self.log(logging.DEBUG, f"Received CLI command: {command}")
                 if command == "join":
                     self.join()
@@ -201,7 +201,10 @@ class Node:
                 elif command == "status":
                     self.status()
                 elif command == "delay":
-                    self.delay(content)
+                    self.set_delay(content)
+                elif command == "send":
+                    target_id, message = content[0], content[1]
+                    node.enqueue_message(int(target_id), message)
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
