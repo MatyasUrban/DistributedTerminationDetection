@@ -102,12 +102,12 @@ class Node:
                 self.log(logging.INFO, f"Accepted connection from {addr}")
                 threading.Thread(target=self.handle_incoming_message, args=(conn,), daemon=True).start()
             except OSError:
-                # Socket was closed; break out of the loop
                 self.log(logging.INFO, "Server socket has been closed; stopping connection acceptance.")
                 break
             except Exception as e:
                 if self.online:  # Log errors only if the server was expected to be running
                     self.log(logging.ERROR, f"Error accepting connection: {e}")
+                break
 
     def process_outgoing_messages(self):
         """Processes outgoing messages from the queue and sends them."""
@@ -161,6 +161,10 @@ class Node:
                 self.log(logging.INFO, "Server socket has been closed.")
             else:
                 self.log(logging.WARNING, "Server socket is already closed.")
+            if self.incoming_connections_thread and self.incoming_connections_thread.is_alive():
+                self.incoming_connections_thread.join(timeout=2)
+            if self.outgoing_connections_thread and self.outgoing_connections_thread.is_alive():
+                self.outgoing_connections_thread.join(timeout=2)
         except Exception as e:
             self.log(logging.ERROR, f"Error stopping networking: {e}")
 
