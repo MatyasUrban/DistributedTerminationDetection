@@ -114,8 +114,8 @@ class Node:
         """Processes outgoing messages from the queue and sends them."""
         while self.online:
             try:
-                target_id, message = self.outgoing_queue.get(timeout=1)  # Timeout prevents indefinite blocking
-                self.log(logging.DEBUG, f"Processing message to Node {target_id}: {message}")
+                target_id, (msg_type, msg_content) = self.outgoing_queue.get(timeout=1)
+                self.log(logging.DEBUG, f"Processing message to Node {target_id}.")
                 if self.delay > 0:
                     self.log(logging.INFO, f"Delaying message to Node {target_id} by {self.delay} seconds.")
                     time.sleep(self.delay)
