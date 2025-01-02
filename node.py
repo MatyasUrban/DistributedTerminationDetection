@@ -86,15 +86,15 @@ class Node:
             }
         )
 
-    def enqueue_message(self, target_id, payload):
+    def enqueue_message(self, target_id, msg_type, msg_content, replying_to=None):
         """
         payload is a tuple: (message_type, message_content)
         We add a 'scheduled_time' to avoid stacked sleeps.
         """
         scheduled_time = time.time() + self.delay
-        self.outgoing_queue.put((target_id, payload, scheduled_time))
+        self.outgoing_queue.put((target_id, msg_type, msg_content, replying_to, scheduled_time))
         self.log(logging.INFO,
-                 f"Enqueued message to Node {target_id} at scheduled time {scheduled_time:.2f}: {payload}")
+                 f"Enqueued message to Node {target_id} at scheduled time {scheduled_time:.2f}")
 
     def accept_connections(self):
         """Accepts incoming connections and handles them."""
@@ -119,7 +119,7 @@ class Node:
         """Processes outgoing messages from the queue and sends them."""
         while self.online:
             try:
-                target_id, (msg_type, msg_content), scheduled_time = self.outgoing_queue.get(timeout=1)
+                target_id, msg_type, msg_content, replying_to, scheduled_time = self.outgoing_queue.get(timeout=1)
 
                 now = time.time()
                 if now < scheduled_time:
@@ -127,7 +127,7 @@ class Node:
                     self.log(logging.DEBUG,
                              f"Waiting {time_to_wait:.2f}s before sending message to Node {target_id}.")
                     time.sleep(time_to_wait)
-                self.send_message(target_id, msg_type, msg_content)
+                self.send_message(target_id, msg_type, msg_content, replying_to)
 
             except queue.Empty:
                 continue
@@ -226,7 +226,7 @@ class Node:
                 elif command == "send":
                     target_id = int(content[0])
                     message_text = " ".join(content[1:])  # capture full text
-                    node.enqueue_message(target_id, ("TEXT", message_text))
+                    self.enqueue_message(target_id, "TEXT", message_text)
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
