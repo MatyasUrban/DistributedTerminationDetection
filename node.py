@@ -86,10 +86,15 @@ class Node:
             }
         )
 
-    def enqueue_message(self, target_id, message):
-        """Adds a message to the outgoing queue."""
-        self.outgoing_queue.put((target_id, message))
-        self.log(logging.INFO, f"Enqueued message to Node {target_id}: {message}")
+    def enqueue_message(self, target_id, payload):
+        """
+        payload is a tuple: (message_type, message_content)
+        We add a 'scheduled_time' to avoid stacked sleeps.
+        """
+        scheduled_time = time.time() + self.delay
+        self.outgoing_queue.put((target_id, payload, scheduled_time))
+        self.log(logging.INFO,
+                 f"Enqueued message to Node {target_id} at scheduled time {scheduled_time:.2f}: {payload}")
 
     def accept_connections(self):
         """Accepts incoming connections and handles them."""
@@ -114,16 +119,20 @@ class Node:
         """Processes outgoing messages from the queue and sends them."""
         while self.online:
             try:
-                target_id, (msg_type, msg_content) = self.outgoing_queue.get(timeout=1)
-                self.log(logging.DEBUG, f"Processing message to Node {target_id}.")
-                if self.delay > 0:
-                    self.log(logging.INFO, f"Delaying message to Node {target_id} by {self.delay} seconds.")
-                    time.sleep(self.delay)
+                target_id, (msg_type, msg_content), scheduled_time = self.outgoing_queue.get(timeout=1)
+
+                now = time.time()
+                if now < scheduled_time:
+                    time_to_wait = scheduled_time - now
+                    self.log(logging.DEBUG,
+                             f"Waiting {time_to_wait:.2f}s before sending message to Node {target_id}.")
+                    time.sleep(time_to_wait)
                 self.send_message(target_id, msg_type, msg_content)
+
             except queue.Empty:
                 continue
             except Exception as e:
-                if self.online:  # Log errors only if the node is still online
+                if self.online:
                     self.log(logging.ERROR, f"Error processing outgoing message: {e}")
 
     def start_networking(self):
