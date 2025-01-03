@@ -6,7 +6,15 @@ import sys
 import time
 import queue
 import json
+import typing
 
+class Message(typing.TypedDict):
+    sender_id: int
+    sender_clock: int
+    message_id: str
+    message_type: str
+    message_content: typing.Optional[str]
+    replying_to: typing.Optional[str]
 
 # Predefined Node ID-IP Mapping
 ID_IP_MAP = {
@@ -48,6 +56,8 @@ class Node:
         self.work_queue = queue.Queue()
         self.work_thread = None
         self.task_in_progress = None
+        self.sent_messages = {}
+        self.received_replies = {}
 
     def get_local_ip(self):
         try:
@@ -90,16 +100,6 @@ class Node:
             }
         )
 
-    def enqueue_message(self, target_id, msg_type, msg_content, replying_to=None):
-        """
-        payload is a tuple: (message_type, message_content)
-        We add a 'scheduled_time' to avoid stacked sleeps.
-        """
-        scheduled_time = time.time() + self.delay
-        self.outgoing_queue.put((target_id, msg_type, msg_content, replying_to, scheduled_time))
-        self.log(logging.INFO,
-                 f"Enqueued message to Node {target_id} at scheduled time {scheduled_time:.2f}")
-
     def accept_connections(self):
         """Accepts incoming connections and handles them."""
         self.log(logging.INFO, "Server is now accepting connections.")
@@ -123,7 +123,7 @@ class Node:
         """Processes outgoing messages from the queue and sends them."""
         while self.online:
             try:
-                target_id, msg_type, msg_content, replying_to, scheduled_time = self.outgoing_queue.get(timeout=1)
+                target_id, message_payload, scheduled_time = self.outgoing_queue.get(timeout=1)
 
                 now = time.time()
                 if now < scheduled_time:
@@ -131,7 +131,7 @@ class Node:
                     self.log(logging.DEBUG,
                              f"Waiting {time_to_wait:.2f}s before sending message to Node {target_id}.")
                     time.sleep(time_to_wait)
-                self.send_message(target_id, msg_type, msg_content, replying_to)
+                self.send_message(target_id, message_payload)
 
             except queue.Empty:
                 continue
@@ -302,7 +302,7 @@ class Node:
                 elif command == "send":
                     target_id = int(content[0])
                     message_text = " ".join(content[1:])  # capture full text
-                    self.enqueue_message(target_id, "TEXT", message_text)
+                    self.build_and_enqueue_message(target_id, 'TEXT', message_text)
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
@@ -322,7 +322,7 @@ class Node:
                 print(f"Error: {e}")
                 sys.exit(1)
 
-    def send_message(self, target_id, message_type, message_content=None, replying_to=None):
+    def send_message(self, target_id, message_payload: Message):
         """
         Sends a JSON-structured message to a target node, updating local lamport clock.
         """
@@ -333,24 +333,27 @@ class Node:
             return
 
         # Build the JSON payload
-        json_payload = self.build_message(message_type, message_content, replying_to)
+        json_payload = json.dumps(message_payload)
 
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
                 client_socket.connect((target_ip, target_port))
                 client_socket.sendall(json_payload.encode("utf-8"))
+                # Record the sent message into the map
+                message_payload['time_sent'] = time.time()
+                self.sent_messages[message_payload.get('message_id')] = message_payload
                 self.log(logging.INFO, f"Sent message to Node {target_id}: {json_payload}")
         except Exception as e:
             self.log(logging.ERROR, f"Failed to send message to Node {target_id}: {e}")
 
-    def build_message(self, message_type, message_content=None, replying_to=None):
+    def build_and_enqueue_message(self, target_id, message_type, message_content=None, replying_to=None):
         """
         Builds a JSON message with structured fields:
         {
           "sender_id": <number>,
           "sender_clock": <number>,
           "message_id": "senderId-senderClock" or a UUID,
-          "message_type": <string>,
+          "message_type": <string or undefined>,
           "message_content": <string or null>,
           "replying_to": <original_message_id or null>
         }
@@ -361,8 +364,8 @@ class Node:
             sender_clock = self.logical_clock
             sender_id = self.id
 
-        message_id = f"{sender_id}-{sender_clock}"  # Or use: str(uuid.uuid4()) for uniqueness
-        payload = {
+        message_id = f"{sender_id}-{sender_clock}"
+        message_payload = {
             "sender_id": sender_id,
             "sender_clock": sender_clock,
             "message_id": message_id,
@@ -370,7 +373,12 @@ class Node:
             "message_content": message_content,
             "replying_to": replying_to
         }
-        return json.dumps(payload)
+        scheduled_time = time.time() + self.delay
+        self.outgoing_queue.put((target_id, message_payload, scheduled_time))
+        self.log(logging.INFO,
+                 f"Enqueued message to Node {target_id} at scheduled time {scheduled_time:.2f}")
+        return message_id
+
     def parse_message(self, raw_data):
         """
         Parses the raw JSON data into a Python dict and updates local logical clock.
