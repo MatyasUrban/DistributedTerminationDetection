@@ -10,11 +10,11 @@ import json
 
 # Predefined Node ID-IP Mapping
 ID_IP_MAP = {
-    1: "192.168.64.201",
-    2: "192.168.64.202",
-    3: "192.168.64.203",
-    4: "192.168.64.204",
-    5: "192.168.64.205",
+    0: "192.168.64.201",
+    1: "192.168.64.202",
+    2: "192.168.64.203",
+    3: "192.168.64.204",
+    4: "192.168.64.205",
 }
 
 # Configure Logging
@@ -43,7 +43,11 @@ class Node:
         self.outgoing_queue = queue.Queue()
         self.outgoing_connections_thread = None
         self.incoming_connections_thread = None
-
+        self.topology = None
+        self.successor_id = None
+        self.work_queue = queue.Queue()
+        self.work_thread = None
+        self.task_in_progress = None
 
     def get_local_ip(self):
         try:
@@ -158,6 +162,7 @@ class Node:
             if not self.online:
                 self.online = True
                 self.start_networking()
+                self.start_work_processor()
                 self.log(logging.INFO, "Node has joined the topology.")
             else:
                 self.log(logging.WARNING, "Node is already online.")
@@ -183,6 +188,7 @@ class Node:
             if self.online:
                 self.online = False
                 self.stop_networking()
+                self.stop_work_processor()
                 self.log(logging.INFO, "Node has left the topology.")
             else:
                 self.log(logging.WARNING, "Node is already offline.")
@@ -190,12 +196,14 @@ class Node:
     def status(self):
         with self.lock:  # Ensure thread-safe access
             self.log(logging.DEBUG, "Status requested.")
+            busy_state = "BUSY" if self.is_busy() else "IDLE"
             status_info = (
                 f"Node ID: {self.id}\n"
                 f"IP Address: {self.ip}\n"
                 f"Online: {self.online}\n"
                 f"Logical Clock: {self.logical_clock}\n"
                 f"Message Delay: {self.delay}s\n"
+                f"Work State: {busy_state}\n"
             )
             print(status_info)
             self.log(logging.INFO, "Status displayed to user.")
@@ -203,6 +211,71 @@ class Node:
         self.log(logging.DEBUG, "Delay change requested.")
         self.delay = int(content[0])
         self.log(logging.INFO, f"Delay set to: {self.delay}s.")
+
+    def process_tasks(self):
+        """Continuously processes tasks from the work queue, one at a time."""
+        while self.online:
+            try:
+                # Wait for a task to become available
+                task_id, task_type, task_goal = self.work_queue.get(timeout=1)
+                self.task_in_progress = (task_id, task_type)
+
+                if task_type == "count":
+                    # Perform counting from 1 to task_goal
+                    for i in range(1, task_goal + 1):
+                        if not self.online:
+                            # If node goes offline mid-task, we stop
+                            self.log(logging.INFO, "Node went offline, stopping current task.")
+                            break
+
+                        self.log(logging.INFO, f"Executing task {task_id}: count {i}/{task_goal}")
+                        time.sleep(1)  # Simulate work each second
+
+                    self.log(logging.INFO, f"Task {task_id} completed or stopped.")
+
+                # Mark the task done
+                self.task_in_progress = None
+                self.work_queue.task_done()
+
+            except queue.Empty:
+                # No task in the queue, loop again
+                continue
+            except Exception as e:
+                self.log(logging.ERROR, f"Error processing task: {e}")
+                self.task_in_progress = None
+
+    def enqueue_task(self, goal):
+        """
+        Enqueues a counting task.
+        Increments local logical clock, then creates a unique task_id and enqueues.
+        """
+        with self.lock:
+            self.logical_clock += 1
+            current_clock = self.logical_clock
+
+        task_id = f"{self.id}-{current_clock}-{goal}"
+        self.work_queue.put((task_id, "count", goal))
+        self.log(logging.INFO, f"Enqueued task: {task_id} (count up to {goal}).")
+
+    def start_work_processor(self):
+        """Starts the worker thread that processes tasks (e.g., counting)."""
+        self.log(logging.DEBUG, "Starting work processor thread.")
+        self.work_thread = threading.Thread(target=self.process_tasks, daemon=True)
+        self.work_thread.start()
+    def stop_work_processor(self):
+        """Starts the worker thread that processes tasks (e.g., counting)."""
+        self.log(logging.DEBUG, "Stopping work processor thread.")
+        if self.work_thread and self.work_thread.is_alive():
+            self.work_thread.join(timeout=2)
+
+    def is_busy(self):
+        """
+        Returns True if a task is currently in progress or if the work_queue isn't empty.
+        """
+        in_progress = (self.task_in_progress is not None)
+        queue_non_empty = not self.work_queue.empty()
+        return in_progress or queue_non_empty
+
     def handle_cli(self):
         """Handles CLI commands in a dedicated thread."""
         self.log(logging.DEBUG, "CLI thread started.")
@@ -223,6 +296,9 @@ class Node:
                     self.status()
                 elif command == "delay":
                     self.set_delay(content)
+                elif command == "count":
+                    goal = int(content[0])
+                    self.enqueue_task(goal)
                 elif command == "send":
                     target_id = int(content[0])
                     message_text = " ".join(content[1:])  # capture full text
