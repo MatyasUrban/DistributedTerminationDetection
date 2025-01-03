@@ -157,12 +157,47 @@ class Node:
         except Exception as e:
             self.log(logging.CRITICAL, f"Failed to start networking: {e}")
 
+    def probe_for_successor(self):
+        """
+        Probes potential successors in ascending ID order (skipping self.id).
+        If any replies with e.g. 'JOIN_ACK', we set that node as successor.
+        Otherwise, if no replies, we consider ourselves alone in the topology.
+        """
+        self.log(logging.INFO, "Node will now probe for successors.")
+        self.topology = [self.id]  # start with only ourselves
+        candidate_ids = [x for x in ID_IP_MAP.keys() if x != self.id]
+        candidate_ids.sort()  # ascending order
+        cand_id = self.id
+        while cand_id != self.id - 1:
+            cand_id = (cand_id + 1) % 5
+            self.log(logging.INFO, f"Probing successor with id {cand_id}.")
+            # Send a JOIN message
+            msg_id = self.build_and_enqueue_message(cand_id, "JOIN")
+
+            # Wait up to 3 seconds or break sooner if we see a reply
+            start_wait = time.time()
+            while time.time() - start_wait < 3:
+                if msg_id in self.received_replies:
+                    reply_info = self.received_replies[msg_id]
+                    # That means cand_id is our successor
+                    self.successor_id = cand_id
+                    self.topology.append(cand_id)
+                    self.topology.sort()
+                    self.log(logging.INFO, f"Set successor to Node {reply_info.get('sender_id')}, updated topology: {self.topology}")
+                    return  # done
+                time.sleep(0.1)  # small wait, re-check
+
+        # If we reach here, no one responded
+        self.log(logging.INFO, f"No successors found online. We are alone in the topology: {self.topology}")
+        self.successor_id = None  # or maybe set it to self.id if you want a ring of one
+
     def join(self):
         with self.lock:  # Ensure thread-safe access
             if not self.online:
                 self.online = True
                 self.start_networking()
                 self.start_work_processor()
+                self.probe_for_successor()
                 self.log(logging.INFO, "Node has joined the topology.")
             else:
                 self.log(logging.WARNING, "Node is already online.")
@@ -340,7 +375,7 @@ class Node:
                 client_socket.connect((target_ip, target_port))
                 client_socket.sendall(json_payload.encode("utf-8"))
                 # Record the sent message into the map
-                message_payload['time_sent'] = time.time()
+                message_payload["time_sent"] = time.time()
                 self.sent_messages[message_payload.get('message_id')] = message_payload
                 self.log(logging.INFO, f"Sent message to Node {target_id}: {json_payload}")
         except Exception as e:
@@ -413,7 +448,17 @@ class Node:
                     message_id = payload.get("message_id")
                     message_type = payload.get("message_type")
                     message_content = payload.get("message_content")
+                    replying_to = payload.get("replying_to")
                     self.log(logging.INFO, f"Received {message_type} message from Node {sender_id}: {message_content} (Message ID: {message_id})")
+                    if replying_to is not None and replying_to in self.sent_messages:
+                        original_message = self.sent_messages[replying_to]
+                        payload['time_received'] = time.time()
+                        self.received_replies[replying_to] = payload
+                        duration = (original_message.get('time_sent') - payload.get('time_received'))*1000
+                        self.log(logging.INFO,f"Received message is a reply to our original {original_message.get(message_type)}. Roundtrip time {duration}ms.")
+
+                    if message_type == 'JOIN':
+                        self.build_and_enqueue_message(sender_id, 'JOIN_ACK', replying_to=message_id)
                 else:
                     self.log(logging.WARNING, f"Received invalid or unparseable message: {raw_message}")
         except Exception as e:
