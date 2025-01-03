@@ -1,0 +1,145 @@
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Node has joined the topology.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: send
+INFO	Node: 0	Logical Clock: 1	Enqueued message to Node 1 at scheduled time 1735905148.41
+INFO	Node: 0	Logical Clock: 1	Sent message to Node 1: {"sender_id": 0, "sender_clock": 1, "message_id": "0-1", "message_type": "TEXT", "message_content": "hello", "replying_to": null}
+INFO	Node: 0	Logical Clock: 1	Node is shutting down due to KeyboardInterrupt.
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Node will now probe for successors.
+INFO	Node: 0	Logical Clock: 0	Probing successor with id 1.
+INFO	Node: 0	Logical Clock: 0	Node is shutting down due to KeyboardInterrupt.
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+INFO	Node: 0	Logical Clock: 0	Node will now probe for successors.
+INFO	Node: 0	Logical Clock: 0	Probing successor with id 1.
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Node will now probe for successors.
+INFO	Node: 0	Logical Clock: 0	Probing successor with id 1.
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Node will now probe for successors.
+INFO	Node: 0	Logical Clock: 0	Probing successor with id 1.
+INFO	Node: 0	Logical Clock: 0	Node is shutting down due to KeyboardInterrupt.
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Node will now probe for successors.
+INFO	Node: 0	Logical Clock: 0	Node is shutting down due to KeyboardInterrupt.
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Node will now probe for successors.
+INFO	Node: 0	Logical Clock: 0	Probing successor with id 1.
+INFO	Node: 0	Logical Clock: 1	Enqueued message to Node 1 at scheduled time 1735917137.28
+INFO	Node: 0	Logical Clock: 1	Probing successor with id 2.
+INFO	Node: 0	Logical Clock: 2	Enqueued message to Node 2 at scheduled time 1735917140.31
+ERROR	Node: 0	Logical Clock: 2	Failed to send message to Node 1: [Errno 113] No route to host
+INFO	Node: 0	Logical Clock: 2	Probing successor with id 3.
+INFO	Node: 0	Logical Clock: 3	Enqueued message to Node 3 at scheduled time 1735917143.33
+ERROR	Node: 0	Logical Clock: 3	Failed to send message to Node 2: [Errno 113] No route to host
+INFO	Node: 0	Logical Clock: 3	Probing successor with id 4.
+INFO	Node: 0	Logical Clock: 4	Enqueued message to Node 4 at scheduled time 1735917146.37
+ERROR	Node: 0	Logical Clock: 4	Failed to send message to Node 3: [Errno 113] No route to host
+INFO	Node: 0	Logical Clock: 4	Probing successor with id 0.
+INFO	Node: 0	Logical Clock: 5	Enqueued message to Node 0 at scheduled time 1735917149.44
+ERROR	Node: 0	Logical Clock: 5	Failed to send message to Node 4: [Errno 113] No route to host
+INFO	Node: 0	Logical Clock: 5	Accepted connection from ('192.168.64.201', 34204)
+INFO	Node: 0	Logical Clock: 5	Sent message to Node 0: {"sender_id": 0, "sender_clock": 5, "message_id": "0-5", "message_type": "JOIN", "message_content": null, "replying_to": null}
+INFO	Node: 0	Logical Clock: 6	Received JOIN message from Node 0: None (Message ID: 0-5)
+INFO	Node: 0	Logical Clock: 7	Enqueued message to Node 0 at scheduled time 1735917149.56
+INFO	Node: 0	Logical Clock: 7	Accepted connection from ('192.168.64.201', 34220)
+INFO	Node: 0	Logical Clock: 7	Sent message to Node 0: {"sender_id": 0, "sender_clock": 7, "message_id": "0-7", "message_type": "JOIN_ACK", "message_content": null, "replying_to": "0-5"}
+INFO	Node: 0	Logical Clock: 7	Connection closed.
+INFO	Node: 0	Logical Clock: 8	Received JOIN_ACK message from Node 0: None (Message ID: 0-7)
+INFO	Node: 0	Logical Clock: 8	Received message is a reply to our original None. Roundtrip time -2.1822452545166016ms.
+INFO	Node: 0	Logical Clock: 8	Connection closed.
+INFO	Node: 0	Logical Clock: 8	Set successor to Node 0, updated topology: [0, 0]
+INFO	Node: 0	Logical Clock: 8	Node has joined the topology.
+INFO	Node: 0	Logical Clock: 8	Node is shutting down due to KeyboardInterrupt.
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+DEBUG	Node: None	Logical Clock: N/A	Local IP address determined: 192.168.64.201
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+INFO	Node: 0	Logical Clock: 0	Initialized as Node 0 with IP 192.168.64.201
+DEBUG	Node: 0	Logical Clock: 0	Node initialization completed.
+DEBUG	Node: 0	Logical Clock: 0	CLI thread started.
+DEBUG	Node: 0	Logical Clock: 0	Received CLI command: join
+INFO	Node: 0	Logical Clock: 0	Server socket started on 192.168.64.201:5000
+INFO	Node: 0	Logical Clock: 0	Server is now accepting connections.
+DEBUG	Node: 0	Logical Clock: 0	Starting work processor thread.
+INFO	Node: 0	Logical Clock: 0	Node will now probe for successors.
+INFO	Node: 0	Logical Clock: 0	Probing successor with id 2.
+INFO	Node: 0	Logical Clock: 1	Enqueued message to Node 2 at scheduled time 1735917273.33
+INFO	Node: 0	Logical Clock: 1	Probing successor with id 3.
+INFO	Node: 0	Logical Clock: 2	Enqueued message to Node 3 at scheduled time 1735917276.36
+ERROR	Node: 0	Logical Clock: 2	Failed to send message to Node 2: [Errno 113] No route to host
+INFO	Node: 0	Logical Clock: 2	Probing successor with id 4.
+INFO	Node: 0	Logical Clock: 3	Enqueued message to Node 4 at scheduled time 1735917279.38
+ERROR	Node: 0	Logical Clock: 3	Failed to send message to Node 3: [Errno 113] No route to host
+INFO	Node: 0	Logical Clock: 3	No successors found online. We are alone in the topology: [0]
+INFO	Node: 0	Logical Clock: 3	Node has joined the topology.
+ERROR	Node: 0	Logical Clock: 3	Failed to send message to Node 4: [Errno 113] No route to host

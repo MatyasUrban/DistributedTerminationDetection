@@ -167,9 +167,11 @@ class Node:
         self.topology = [self.id]  # start with only ourselves
         candidate_ids = [x for x in ID_IP_MAP.keys() if x != self.id]
         candidate_ids.sort()  # ascending order
-        cand_id = self.id
-        while cand_id != self.id - 1:
+        cand_id = self.id + 1
+        while cand_id != self.id:
             cand_id = (cand_id + 1) % 5
+            if cand_id == self.id:
+                break
             self.log(logging.INFO, f"Probing successor with id {cand_id}.")
             # Send a JOIN message
             msg_id = self.build_and_enqueue_message(cand_id, "JOIN")
@@ -192,15 +194,14 @@ class Node:
         self.successor_id = None  # or maybe set it to self.id if you want a ring of one
 
     def join(self):
-        with self.lock:  # Ensure thread-safe access
-            if not self.online:
-                self.online = True
-                self.start_networking()
-                self.start_work_processor()
-                self.probe_for_successor()
-                self.log(logging.INFO, "Node has joined the topology.")
-            else:
-                self.log(logging.WARNING, "Node is already online.")
+        if not self.online:
+            self.online = True
+            self.start_networking()
+            self.start_work_processor()
+            self.probe_for_successor()
+            self.log(logging.INFO, "Node has joined the topology.")
+        else:
+            self.log(logging.WARNING, "Node is already online.")
 
     def stop_networking(self):
         """Stops the networking components and closes the server socket."""
