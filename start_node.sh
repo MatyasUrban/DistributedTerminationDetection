@@ -1,4 +1,5 @@
 #!/bin/bash
+git pull
 stdbuf -oL tail -n 0 -f node.log &
 TAIL_PID=$!
 python3 node.py
