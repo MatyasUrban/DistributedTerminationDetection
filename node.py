@@ -106,7 +106,7 @@ class Node:
         Sets self.successor_id and self.predecessor_id based on self.topology.
         If topology has only one node (ourselves), both successor_id and predecessor_id become None.
         """
-        if not self.topology or len(self.topology) == 1:
+        if self.topology is None or len(self.topology) == 1:
             # Single-node topology: we are alone
             self.successor_id = None
             self.predecessor_id = None
@@ -247,6 +247,7 @@ class Node:
                 self.stop_work_processor()
                 self.successor_id = None
                 self.topology = None
+
                 self.log(logging.INFO, "Node has left the topology.")
             else:
                 self.log(logging.WARNING, "Node is already offline.")
