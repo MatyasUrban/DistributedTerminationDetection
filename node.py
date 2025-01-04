@@ -320,7 +320,7 @@ class Node:
         print("Node CLI is ready. Type your command.")
         while True:
             try:
-                full_command = input("Enter command: ").strip().lower().split()
+                full_command = input().strip().lower().split()
                 command = full_command[0]
                 content = None
                 if len(full_command)>1:
