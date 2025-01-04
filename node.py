@@ -345,7 +345,7 @@ class Node:
                         new_topology = self.topology
                         new_topology.remove(self.id)
                         self.log(logging.INFO, 'Initiating removal of ourselves from the topology.')
-                        self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', new_topology)
+                        self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', json.dumps(new_topology))
                 elif command == "status":
                     self.status()
                 elif command == "delay":
