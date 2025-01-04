@@ -478,9 +478,11 @@ class Node:
             self.leave()
             return
 
+
         # Normal update: update local topology, predecessor/successor, forward along
         self.topology = new_topology
         self.topology.sort()
+        old_successor = self.successor_id
         self.update_successor_and_predecessor()
 
         self.log(logging.INFO,
@@ -491,7 +493,7 @@ class Node:
         if self.successor_id is not None and self.successor_id != self.id:
             # Build message content as JSON list
             forward_content = json.dumps(self.topology)
-            self.build_and_enqueue_message(self.successor_id, "TOPOLOGY_UPDATE", forward_content)
+            self.build_and_enqueue_message(old_successor if old_successor not in new_topology else self.successor_id, "TOPOLOGY_UPDATE", forward_content)
             self.log(logging.INFO, f"Forwarding TOPOLOGY_UPDATE to Node {self.successor_id}")
 
     def handle_incoming_message(self, conn):
