@@ -252,22 +252,11 @@ class Node:
                 self.log(logging.WARNING, "Node is already offline.")
 
     def status(self):
-        with self.lock:  # Ensure thread-safe access
+        with (self.lock):  # Ensure thread-safe access
             self.log(logging.DEBUG, "Status requested.")
             busy_state = "BUSY" if self.is_busy() else "IDLE"
-            status_info = (
-                f"Node ID: {self.id}\n"
-                f"IP Address: {self.ip}\n"
-                f"Online: {self.online}\n"
-                f"Logical Clock: {self.logical_clock}\n"
-                f"Message Delay: {self.delay}s\n"
-                f"Work State: {busy_state}\n"
-                f"Topology: {self.topology}\n"
-                f"Predecessor: {self.predecessor_id}\n"
-                f"Successor: {self.successor_id}\n"
-            )
-            print(status_info)
-            self.log(logging.INFO, "Status displayed to user.")
+            status_info = f"Node ID: {self.id}, IP Address: {self.ip}, Online: {self.online}, Logical Clock: {self.logical_clock}, Message Delay: {self.delay}s, Work State: {busy_state}, Topology: {self.topology}, Predecessor: {self.predecessor_id}, Successor: {self.successor_id}\n"
+            self.log(logging.INFO, "Status: " + status_info)
     def set_delay(self, content):
         self.log(logging.DEBUG, "Delay change requested.")
         self.delay = int(content[0])
