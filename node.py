@@ -493,7 +493,7 @@ class Node:
         if self.successor_id is not None and self.successor_id != self.id:
             # Build message content as JSON list
             forward_content = json.dumps(self.topology)
-            self.build_and_enqueue_message(old_successor if old_successor not in new_topology else self.successor_id, "TOPOLOGY_UPDATE", forward_content)
+            self.build_and_enqueue_message(old_successor if old_successor is not None and old_successor not in new_topology else self.successor_id, "TOPOLOGY_UPDATE", forward_content)
             self.log(logging.INFO, f"Forwarding TOPOLOGY_UPDATE to Node {self.successor_id}")
 
     def handle_incoming_message(self, conn):
