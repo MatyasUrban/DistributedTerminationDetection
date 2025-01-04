@@ -167,9 +167,8 @@ class Node:
         self.topology = [self.id]  # start with only ourselves
         candidate_ids = [x for x in ID_IP_MAP.keys() if x != self.id]
         candidate_ids.sort()  # ascending order
-        cand_id = self.id + 1
+        cand_id = (self.id + 1) % 5
         while cand_id != self.id:
-            cand_id = (cand_id + 1) % 5
             if cand_id == self.id:
                 break
             self.log(logging.INFO, f"Probing successor with id {cand_id}.")
@@ -188,6 +187,7 @@ class Node:
                     self.log(logging.INFO, f"Set successor to Node {reply_info.get('sender_id')}, updated topology: {self.topology}")
                     return  # done
                 time.sleep(0.1)  # small wait, re-check
+            cand_id = (cand_id + 1) % 5
 
         # If we reach here, no one responded
         self.log(logging.INFO, f"No successors found online. We are alone in the topology: {self.topology}")
