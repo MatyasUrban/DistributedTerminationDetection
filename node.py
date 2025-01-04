@@ -53,6 +53,7 @@ class Node:
         self.incoming_connections_thread = None
         self.topology = None
         self.successor_id = None
+        self.predecessor_id = None
         self.work_queue = queue.Queue()
         self.work_thread = None
         self.task_in_progress = None
@@ -99,6 +100,29 @@ class Node:
                 "clock": getattr(self, "logical_clock", "N/A")
             }
         )
+
+    def update_successor_and_predecessor(self):
+        """
+        Sets self.successor_id and self.predecessor_id based on self.topology.
+        If topology has only one node (ourselves), both successor_id and predecessor_id become None.
+        """
+        if not self.topology or len(self.topology) == 1:
+            # Single-node topology: we are alone
+            self.successor_id = None
+            self.predecessor_id = None
+            self.log(logging.INFO, "Alone in topology, no successor or predecessor.")
+            return
+
+        # We assume self.id is in self.topology. We'll find our index.
+        idx = self.topology.index(self.id)
+        # successor is (idx+1) mod len(topology)
+        succ_idx = (idx + 1) % len(self.topology)
+        pred_idx = (idx - 1) % len(self.topology)
+
+        self.successor_id = self.topology[succ_idx]
+        self.predecessor_id = self.topology[pred_idx]
+
+        self.log(logging.INFO,f"My predecessor is Node {self.predecessor_id}, my successor is Node {self.successor_id}.")
 
     def accept_connections(self):
         """Accepts incoming connections and handles them."""
@@ -437,6 +461,47 @@ class Node:
             self.log(logging.ERROR, f"Error parsing message: {e}")
             return None
 
+    def process_topology_update(self, new_topology, sender_id):
+        """
+        1. If self.topology == new_topology, we assume the ring has fully received it
+           (since it came back around) -> stop forwarding.
+        2. If we are not in new_topology, it means we've been removed from ring -> set online=False or handle it.
+        3. Otherwise update self.topology, update successor/predecessor,
+           and forward the update to successor.
+        """
+        old_topology = self.topology[:] if self.topology else []
+
+        if self.topology == new_topology:
+            self.log(logging.INFO, f"Received TOPOLOGY_UPDATE from Node {sender_id}, "
+                                   f"but we already have this topology = {new_topology}. "
+                                   f"Stopping the ring update.")
+            return
+
+        # Are we removed?
+        if self.id not in new_topology:
+            self.log(logging.INFO, f"Our ID {self.id} is not in the new topology {new_topology}. "
+                                   "We have been removed from the ring.")
+            self.topology = new_topology
+            self.update_successor_and_predecessor()
+            # Optionally do self.leave() or handle partial offline logic.
+            return
+
+        # Normal update: update local topology, predecessor/successor, forward along
+        self.topology = new_topology
+        self.topology.sort()
+        self.update_successor_and_predecessor()
+
+        self.log(logging.INFO,
+                 f"TOPOLOGY_UPDATE from Node {sender_id}. Updated topology from {old_topology} to {new_topology}. "
+                 f"My predecessor: {self.predecessor_id}, successor: {self.successor_id}.")
+
+        # Forward the same update to successor if we have one
+        if self.successor_id is not None and self.successor_id != self.id:
+            # Build message content as JSON list
+            forward_content = json.dumps(self.topology)
+            self.build_and_enqueue_message(self.successor_id, "TOPOLOGY_UPDATE", forward_content)
+            self.log(logging.INFO, f"Forwarding TOPOLOGY_UPDATE to Node {self.successor_id}")
+
     def handle_incoming_message(self, conn):
         """Processes incoming messages from a connection."""
         try:
@@ -462,6 +527,17 @@ class Node:
 
                     if message_type == 'JOIN':
                         self.build_and_enqueue_message(sender_id, 'JOIN_ACK', replying_to=message_id)
+                        self.log(logging.INFO, f"Initiating TOPOLOGY_UPDATE of Node {sender_id}")
+                        new_topology = self.topology[:].append(sender_id).sort()
+                        self.process_topology_update(new_topology, sender_id)
+                    if message_type == "TOPOLOGY_UPDATE":
+                        # message_content is expected to be a JSON-serialized list of node IDs
+                        try:
+                            # Convert e.g. "[0,2,5]" to a Python list
+                            updated_list = json.loads(message_content)
+                            self.process_topology_update(updated_list, sender_id)
+                        except Exception as e:
+                            self.log(logging.WARNING, f"Invalid TOPOLOGY_UPDATE content: {message_content}, error={e}")
                 else:
                     self.log(logging.WARNING, f"Received invalid or unparseable message: {raw_message}")
         except Exception as e:
