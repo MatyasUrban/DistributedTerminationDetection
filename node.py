@@ -25,6 +25,11 @@ ID_IP_MAP = {
     4: "192.168.64.205",
 }
 
+HEARTBEAT_INTERVAL  = 5
+HEARTBEAT_TIMEOUT   = 10
+PROBING_TIMEOUT     = 3
+CHECK_INTERVAL      = 1
+
 # Configure Logging
 log_file = "node.log"
 logging.basicConfig(
@@ -59,6 +64,9 @@ class Node:
         self.task_in_progress = None
         self.sent_messages = {}
         self.received_replies = {}
+        self.predecessor_last_heartbeat = None
+        self.heartbeat_thread = None
+        self.predecessor_monitor_thread = None
 
     def get_local_ip(self):
         try:
@@ -101,6 +109,66 @@ class Node:
             }
         )
 
+    def _heartbeat_loop(self):
+        """
+        Sends heartbeats to successor every HEARTBEAT_INTERVAL seconds,
+        if we have a successor and are online.
+        """
+        self.log(logging.INFO, "Heartbeat thread started.")
+        while self.online:
+            with self.lock:
+                succ = self.successor_id
+
+            if succ is not None:
+                # Enqueue a heartbeat
+                self.build_and_enqueue_message(succ, "HEARTBEAT", "ping")
+                self.log(logging.DEBUG, f"Enqueued HEARTBEAT for successor Node {succ}")
+            else:
+                self.log(logging.DEBUG, "No successor - skipping heartbeat this round.")
+
+            # Sleep for the interval
+            for _ in range(HEARTBEAT_INTERVAL):
+                if not self.online:
+                    break
+                time.sleep(1)
+
+        self.log(logging.INFO, "Heartbeat thread ended.")
+
+    def _predecessor_monitor_loop(self):
+        """
+        Monitors that predecessor's last heartbeat is not older than HEARTBEAT_TIMEOUT.
+        If it is, we remove the predecessor from our ring and do a ring update,
+        or handle it as you prefer.
+        """
+        self.log(logging.INFO, "Predecessor monitor thread started.")
+        while self.online:
+            with self.lock:
+                pred = self.predecessor_id
+                last_hb = self.predecessor_last_heartbeat
+
+            if pred is None:
+                # No predecessor right now, just wait a bit
+                time.sleep(CHECK_INTERVAL)
+                continue
+
+            # If we haven't received a heartbeat from predecessor in too long
+            if last_hb and (time.time() - last_hb > HEARTBEAT_TIMEOUT):
+                self.log(logging.WARNING,
+                         f"Predecessor Node {pred} missed heartbeat in {HEARTBEAT_TIMEOUT}s. Removing from ring.")
+                # Remove predecessor from ring if it's in self.topology
+                if self.topology and pred in self.topology:
+                    new_topo = self.topology[:]
+                    new_topo.remove(pred)
+                    self.process_topology_update(new_topo, self.id)
+
+            # Sleep short intervals
+            for _ in range(CHECK_INTERVAL):
+                if not self.online:
+                    break
+                time.sleep(1)
+
+        self.log(logging.INFO, "Predecessor monitor thread ended.")
+
     def update_successor_and_predecessor(self):
         """
         Sets self.successor_id and self.predecessor_id based on self.topology.
@@ -122,7 +190,8 @@ class Node:
         # successor is (idx+1) mod len(topology)
         succ_idx = (idx + 1) % len(self.topology)
         pred_idx = (idx - 1) % len(self.topology)
-
+        if self.predecessor_id != self.topology[pred_idx]:
+            self.predecessor_last_heartbeat = time.time()
         self.successor_id = self.topology[succ_idx]
         self.predecessor_id = self.topology[pred_idx]
 
@@ -205,7 +274,7 @@ class Node:
 
             # Wait up to 3 seconds or break sooner if we see a reply
             start_wait = time.time()
-            while time.time() - start_wait < 3:
+            while time.time() - start_wait < PROBING_TIMEOUT:
                 if msg_id in self.received_replies:
                     reply_info = self.received_replies[msg_id]
                     self.log(logging.INFO, f"Successful probe to Node {reply_info.get('sender_id')} that is already in the topology.")
@@ -216,6 +285,12 @@ class Node:
         # If we reach here, no one responded
         self.log(logging.INFO, f"No successors found online. We are alone in the topology: {self.topology}")
         self.successor_id = None  # or maybe set it to self.id if you want a ring of one
+    def start_heartbeat_checking_and_sending(self):
+        self.log(logging.INFO, "Starting heartbeat and predecessor monitor threads.")
+        self.heartbeat_thread = threading.Thread(target=self._heartbeat_loop, daemon=True)
+        self.heartbeat_thread.start()
+        self.predecessor_monitor_thread = threading.Thread(target=self._predecessor_monitor_loop, daemon=True)
+        self.predecessor_monitor_thread.start()
 
     def join(self):
         if not self.online:
@@ -223,6 +298,7 @@ class Node:
             self.start_networking()
             self.start_work_processor()
             self.probe_for_successor()
+            self.start_heartbeat_checking_and_sending()
             self.log(logging.INFO, "Node has joined the topology.")
         else:
             self.log(logging.WARNING, "Node is already online.")
@@ -251,7 +327,9 @@ class Node:
                 self.stop_work_processor()
                 self.successor_id = None
                 self.topology = None
-
+                self.predecessor_last_heartbeat = None
+                self.heartbeat_thread = None
+                self.predecessor_monitor_thread = None
                 self.log(logging.INFO, "Node has left the topology.")
             else:
                 self.log(logging.WARNING, "Node is already offline.")
@@ -539,6 +617,17 @@ class Node:
                             self.process_topology_update(updated_list, sender_id)
                         except Exception as e:
                             self.log(logging.WARNING, f"Invalid TOPOLOGY_UPDATE content: {message_content}, error={e}")
+                    if message_type == "HEARTBEAT":
+                        # If the sender is our current predecessor, update predecessor_last_heartbeat
+                        if sender_id == self.predecessor_id:
+                            with self.lock:
+                                self.predecessor_last_heartbeat = time.time()
+                            self.log(logging.DEBUG, f"Heartbeat received from predecessor Node {sender_id}.")
+                        else:
+                            self.log(logging.DEBUG,
+                                     f"Received HEARTBEAT from Node {sender_id}, not recognized as current predecessor.")
+
+
                 else:
                     self.log(logging.WARNING, f"Received invalid or unparseable message: {raw_message}")
         except Exception as e:
