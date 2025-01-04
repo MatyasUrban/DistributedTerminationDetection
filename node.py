@@ -110,7 +110,7 @@ class Node:
             # Single-node topology: we are alone
             self.successor_id = None
             self.predecessor_id = None
-            self.log(logging.INFO, "Alone in topology, no successor or predecessor.")
+            self.log(logging.INFO, f"No successor or predecessor given that we are {'alone in the topology' if len(self.topology) == 1 else 'removed from the topology'}.")
             return
 
         # We assume self.id is in self.topology. We'll find our index.
@@ -349,7 +349,11 @@ class Node:
                 if command == "join":
                     self.join()
                 elif command == "leave":
-                    self.leave()
+                    if self.topology:
+                        new_topology = self.topology
+                        new_topology.remove(self.id)
+                        self.log(logging.INFO, 'Initiating removal of ourselves from the topology.')
+                        self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', new_topology)
                 elif command == "status":
                     self.status()
                 elif command == "delay":
@@ -477,9 +481,9 @@ class Node:
         if self.id not in new_topology:
             self.log(logging.INFO, f"Our ID {self.id} is not in the new topology {new_topology}. "
                                    "We have been removed from the ring.")
-            self.topology = new_topology
+            self.topology = None
             self.update_successor_and_predecessor()
-            # Optionally do self.leave() or handle partial offline logic.
+            self.leave()
             return
 
         # Normal update: update local topology, predecessor/successor, forward along
