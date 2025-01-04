@@ -1,5 +1,6 @@
 #!/bin/bash
-git pull
+git reset --hard HEAD
+git pull --rebase
 stdbuf -oL tail -n 0 -f node.log &
 TAIL_PID=$!
 python3 node.py
