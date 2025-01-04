@@ -204,11 +204,8 @@ class Node:
             while time.time() - start_wait < 3:
                 if msg_id in self.received_replies:
                     reply_info = self.received_replies[msg_id]
-                    # That means cand_id is our successor
-                    self.successor_id = cand_id
-                    self.topology.append(cand_id)
-                    self.topology.sort()
-                    self.log(logging.INFO, f"Set successor to Node {reply_info.get('sender_id')}, updated topology: {self.topology}")
+                    self.topology = [self.id]
+                    self.log(logging.INFO, f"Successful probe to Node {reply_info.get('sender_id')} that is already in the topology.")
                     return  # done
                 time.sleep(0.1)  # small wait, re-check
             cand_id = (cand_id + 1) % 5
