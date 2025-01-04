@@ -43,7 +43,7 @@ class Node:
         self.port = 5000
         self.online = False
         self.logical_clock = 0
-        self.delay = 0  # Default delay for messages
+        self.delay = 1  # Default delay for messages
         self.lock = threading.Lock()  # Lock for thread-safe operations
         self.init_node_id()
         self.log(logging.DEBUG, "Node initialization completed.")
