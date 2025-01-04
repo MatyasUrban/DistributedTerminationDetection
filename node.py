@@ -106,11 +106,15 @@ class Node:
         Sets self.successor_id and self.predecessor_id based on self.topology.
         If topology has only one node (ourselves), both successor_id and predecessor_id become None.
         """
-        if self.topology is None or len(self.topology) == 1:
-            # Single-node topology: we are alone
+        if self.topology is None:
             self.successor_id = None
             self.predecessor_id = None
-            self.log(logging.INFO, f"No successor or predecessor given that we are {'alone in the topology' if len(self.topology) == 1 else 'removed from the topology'}.")
+            self.log(logging.INFO, f"Removing successor and predecessor given that we were removed from topology.")
+            return
+        if len(self.topology) == 1:
+            self.successor_id = None
+            self.predecessor_id = None
+            self.log(logging.INFO, f"Removing successor and predecessor given that we are the only node in the topology.")
             return
 
         # We assume self.id is in self.topology. We'll find our index.
