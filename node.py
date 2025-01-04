@@ -204,7 +204,6 @@ class Node:
             while time.time() - start_wait < 3:
                 if msg_id in self.received_replies:
                     reply_info = self.received_replies[msg_id]
-                    self.topology = [self.id]
                     self.log(logging.INFO, f"Successful probe to Node {reply_info.get('sender_id')} that is already in the topology.")
                     return  # done
                 time.sleep(0.1)  # small wait, re-check
@@ -525,7 +524,9 @@ class Node:
                     if message_type == 'JOIN':
                         self.build_and_enqueue_message(sender_id, 'JOIN_ACK', replying_to=message_id)
                         self.log(logging.INFO, f"Initiating TOPOLOGY_UPDATE of Node {sender_id}")
-                        new_topology = self.topology[:].append(sender_id).sort()
+                        new_topology = self.topology[:]
+                        new_topology.append(sender_id)
+                        new_topology.sort()
                         self.process_topology_update(new_topology, sender_id)
                     if message_type == "TOPOLOGY_UPDATE":
                         # message_content is expected to be a JSON-serialized list of node IDs
