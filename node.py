@@ -262,6 +262,9 @@ class Node:
                 f"Logical Clock: {self.logical_clock}\n"
                 f"Message Delay: {self.delay}s\n"
                 f"Work State: {busy_state}\n"
+                f"Topology: {self.topology}\n"
+                f"Predecessor: {self.predecessor_id}\n"
+                f"Successor: {self.successor_id}\n"
             )
             print(status_info)
             self.log(logging.INFO, "Status displayed to user.")

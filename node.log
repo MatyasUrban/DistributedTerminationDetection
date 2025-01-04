@@ -143,3 +143,8 @@ ERROR	Node: 0	Logical Clock: 3	Failed to send message to Node 3: [Errno 113] No 
 INFO	Node: 0	Logical Clock: 3	No successors found online. We are alone in the topology: [0]
 INFO	Node: 0	Logical Clock: 3	Node has joined the topology.
 ERROR	Node: 0	Logical Clock: 3	Failed to send message to Node 4: [Errno 113] No route to host
+DEBUG	Node: N/A	Logical Clock: N/A	Node initialization started.
+DEBUG	Node: None	Logical Clock: N/A	Attempting to determine local IP address.
+CRITICAL	Node: None	Logical Clock: N/A	Failed to determine local IP address: [Errno 2] No such file or directory: 'ip'
+DEBUG	Node: None	Logical Clock: 0	Attempting to determine Node ID from IP.
+CRITICAL	Node: None	Logical Clock: 0	Failed to determine Node ID from IP.
