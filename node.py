@@ -225,6 +225,8 @@ class Node:
                 self.online = False
                 self.stop_networking()
                 self.stop_work_processor()
+                self.successor_id = None
+                self.topology = None
                 self.log(logging.INFO, "Node has left the topology.")
             else:
                 self.log(logging.WARNING, "Node is already offline.")
@@ -455,8 +457,8 @@ class Node:
                         original_message = self.sent_messages[replying_to]
                         payload['time_received'] = time.time()
                         self.received_replies[replying_to] = payload
-                        duration = (original_message.get('time_sent') - payload.get('time_received'))*1000
-                        self.log(logging.INFO,f"Received message is a reply to our original {original_message.get(message_type)}. Roundtrip time {duration}ms.")
+                        duration = payload.get('time_received') - original_message.get('time_sent')
+                        self.log(logging.INFO,f"Received message is a reply to our original {original_message.get('message_type')}. Roundtrip time {duration}ms.")
 
                     if message_type == 'JOIN':
                         self.build_and_enqueue_message(sender_id, 'JOIN_ACK', replying_to=message_id)
