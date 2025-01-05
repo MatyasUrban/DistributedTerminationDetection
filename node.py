@@ -350,20 +350,19 @@ class Node:
         while self.online:
             try:
                 # Wait for a task to become available
-                task_id, task_type, task_goal = self.work_queue.get(timeout=1)
+                task_id, task_type, start, goal = self.work_queue.get(timeout=1)
                 self.task_in_progress = (task_id, task_type)
                 if task_type == "count":
                     # Perform counting from 1 to task_goal
-                    for i in range(1, task_goal + 1):
+                    self.log(logging.INFO, f"Executing count task {task_id} for range {start}..{goal}")
+                    for i in range(start, goal + 1):
                         if not self.online:
-                            # If node goes offline mid-task, we stop
                             self.log(logging.INFO, "Node went offline, stopping current task.")
                             break
+                        self.log(logging.INFO, f"Counting: {i}/{goal}")
+                        time.sleep(1)  # Simulate work
 
-                        self.log(logging.INFO, f"Executing task {task_id}: count {i}/{task_goal}")
-                        time.sleep(1)  # Simulate work each second
-
-                    self.log(logging.INFO, f"Task {task_id} completed or stopped.")
+                    self.log(logging.INFO, f"Task {task_id} completed.")
 
                 # Mark the task done
                 self.task_in_progress = None
@@ -378,18 +377,59 @@ class Node:
                 self.log(logging.ERROR, f"Error processing task: {e}")
                 self.task_in_progress = None
 
-    def enqueue_task(self, goal):
+    def enqueue_count_task(self, start: int, goal: int):
         """
-        Enqueues a counting task.
-        Increments local logical clock, then creates a unique task_id and enqueues.
+        Enqueues a counting task [start..goal].
+        Increments local logical clock, then creates a unique task_id and enqueues in the self.work_queue.
         """
         with self.lock:
             self.logical_clock += 1
             current_clock = self.logical_clock
 
-        task_id = f"{self.id}-{current_clock}-{goal}"
-        self.work_queue.put((task_id, "count", goal))
-        self.log(logging.INFO, f"Enqueued task: {task_id} (count up to {goal}).")
+        task_id = f"{self.id}-{current_clock}-({start}..{goal})"
+        self.work_queue.put((task_id, "count", start, goal))
+        self.log(logging.INFO, f"Enqueued count task: {task_id} (range {start}..{goal}).")
+
+    def handle_count_task(self, start: int, goal: int):
+        """
+        Decides how to handle a counting range [start..goal].
+        If (goal - start + 1) <= 10 => enqueue locally.
+        If there's no successor but the range is > 10 => we split locally into multiple tasks of up to 10 each.
+        If we do have a successor => take only up to 10 for local, delegate remainder to successor.
+        """
+        total_count = goal - start + 1
+        if total_count <= 0:
+            self.log(logging.WARNING, f"Count task received invalid range [{start}..{goal}]. No tasks enqueued.")
+            return
+
+        # If range size <= 10, just enqueue one local counting task.
+        if total_count <= 10:
+            self.log(logging.INFO, f"Enqueuing local count task from {start} to {goal}")
+            self.enqueue_count_task(start, goal)
+            return
+
+        # If no successor, we do everything locally but in chunks of up to 10
+        if not self.successor_id:
+            self.log(logging.INFO, f"No successor. We'll split range into multiple local tasks.")
+            current = start
+            while current <= goal:
+                chunk_end = min(current + 9, goal)
+                self.log(logging.INFO, f"Enqueuing chunk: count from {current} to {chunk_end}")
+                self.enqueue_count_task(current, chunk_end)
+                current = chunk_end + 1
+            return
+
+        # Otherwise, we have a successor. Take the first 10 locally; delegate the rest.
+        local_end = start + 9
+        self.log(logging.INFO, f"Taking local chunk [start={start}, end={local_end}] for this node.")
+        self.enqueue_count_task(start, local_end)
+
+        # Delegate the remainder to successor
+        new_start = local_end + 1
+        if new_start <= goal:
+            remainder_string = f"{new_start},{goal}"
+            self.log(logging.INFO, f"Delegating remainder [{new_start}..{goal}] to successor Node {self.successor_id}")
+            self.build_and_enqueue_message(self.successor_id, "DELEGATE_COUNT", remainder_string)
 
     def start_work_processor(self):
         """Starts the worker thread that processes tasks (e.g., counting)."""
@@ -437,8 +477,7 @@ class Node:
                 elif command == "delay":
                     self.set_delay(content)
                 elif command == "count":
-                    goal = int(content[0])
-                    self.enqueue_task(goal)
+                    self.handle_count_task(1, int(content[0]))
                 elif command == "send":
                     target_id = int(content[0])
                     message_text = " ".join(content[1:])  # capture full text
@@ -608,7 +647,16 @@ class Node:
                         self.received_replies[replying_to] = payload
                         duration = payload.get('time_received') - original_message.get('time_sent')
                         self.log(logging.INFO,f"Received message is a reply to our original {original_message.get('message_type')}. Roundtrip time {duration}ms.")
-
+                    if message_type == "DELEGATE_COUNT":
+                        # message_content is e.g. "15,30"
+                        try:
+                            s, g = message_content.split(",", 1)
+                            s_int, g_int = int(s), int(g)
+                            self.log(logging.INFO,
+                                     f"Received DELEGATE_COUNT for range [{s_int}..{g_int}] from Node {sender_id}")
+                            self.handle_count_task(s_int, g_int)
+                        except Exception as e:
+                            self.log(logging.WARNING, f"Invalid DELEGATE_COUNT content: {message_content} - {e}")
                     if message_type == 'JOIN':
                         self.build_and_enqueue_message(sender_id, 'JOIN_ACK', replying_to=message_id)
                         self.log(logging.INFO, f"Initiating TOPOLOGY_UPDATE of Node {sender_id}")
