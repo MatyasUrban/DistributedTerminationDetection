@@ -446,7 +446,7 @@ class Node:
                     message_text = " ".join(content[1:])  # capture full text
                     self.build_and_enqueue_message(target_id, 'TEXT', message_text)
                 elif command == "startmisra":
-                    self.handle_misra()
+                    self.handle_misra(-1)
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
