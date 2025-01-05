@@ -67,6 +67,8 @@ class Node:
         self.predecessor_last_heartbeat = None
         self.heartbeat_thread = None
         self.predecessor_monitor_thread = None
+        self.misra_process_color = 'black'
+        self.misra_marker_present = False
 
     def get_local_ip(self):
         try:
@@ -352,7 +354,6 @@ class Node:
                 # Wait for a task to become available
                 task_id, task_type, task_goal = self.work_queue.get(timeout=1)
                 self.task_in_progress = (task_id, task_type)
-
                 if task_type == "count":
                     # Perform counting from 1 to task_goal
                     for i in range(1, task_goal + 1):
@@ -368,6 +369,8 @@ class Node:
 
                 # Mark the task done
                 self.task_in_progress = None
+                if self.work_queue.empty():
+                    self.handle_misra()
                 self.work_queue.task_done()
 
             except queue.Empty:
@@ -424,11 +427,13 @@ class Node:
                 if command == "join":
                     self.join()
                 elif command == "leave":
-                    if self.topology:
+                    self.log(logging.INFO, 'Initiating removal of ourselves from the topology.')
+                    if self.topology and self.successor_id:
                         new_topology = self.topology[:]
                         new_topology.remove(self.id)
-                        self.log(logging.INFO, 'Initiating removal of ourselves from the topology.')
                         self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', json.dumps(new_topology))
+                    else:
+                        self.leave()
                 elif command == "status":
                     self.status()
                 elif command == "delay":
@@ -440,6 +445,8 @@ class Node:
                     target_id = int(content[0])
                     message_text = " ".join(content[1:])  # capture full text
                     self.build_and_enqueue_message(target_id, 'TEXT', message_text)
+                elif command == "startMisra":
+                    self.handle_misra()
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
@@ -595,6 +602,7 @@ class Node:
                     message_content = payload.get("message_content")
                     replying_to = payload.get("replying_to")
                     self.log(logging.INFO, f"Received {message_type} message from Node {sender_id}: {message_content} (Message ID: {message_id})")
+                    self.misra_process_color = 'black'
                     if replying_to is not None and replying_to in self.sent_messages:
                         original_message = self.sent_messages[replying_to]
                         payload['time_received'] = time.time()
@@ -626,6 +634,14 @@ class Node:
                         else:
                             self.log(logging.DEBUG,
                                      f"Received HEARTBEAT from Node {sender_id}, not recognized as current predecessor.")
+                    if message_type == "MARKER":
+                        try:
+                            current_count = int(message_content)  # e.g. "0", "1", "2"
+                        except ValueError:
+                            current_count = 0
+                        self.handle_misra(current_count)
+
+
 
 
                 else:
@@ -638,6 +654,25 @@ class Node:
 
     def start(self):
         self.handle_cli()
+
+    def handle_misra(self, current_count=0):
+        with self.lock:
+            if self.is_busy():
+                self.log(logging.INFO, "Marker arrived, but we are active. Will release the marker once we are idle.")
+                self.misra_marker_present = True
+            else:
+                self.log(logging.INFO,
+                         f"Marker arrived and we are idle. Incrementing marker from {current_count} to {current_count + 1}.")
+                self.misra_process_color = 'white'
+                current_count += 1
+                if self.topology and current_count == len(self.topology):
+                    self.log(logging.CRITICAL,
+                             f"MARKER algorithm: Detected global termination! Count of processes in the ring ({len(self.topology)}) == count of contiguous white processes ({current_count})")
+                elif self.successor_id is not None and len(self.topology) > 1:
+                    self.log(logging.INFO,
+                             f"Forwarding MARKER with count={current_count} to Node {self.successor_id}.")
+                    self.build_and_enqueue_message(self.successor_id, "MARKER", current_count)
+                self.misra_marker_present = False
 
 
 # Main Function
