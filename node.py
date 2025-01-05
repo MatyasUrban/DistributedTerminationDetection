@@ -208,14 +208,14 @@ class Node:
                 if not self.online:  # If the server is offline, ignore the connection
                     conn.close()
                     break
-                self.log(logging.INFO, f"Accepted connection from {addr}")
+                # self.log(logging.INFO, f"Accepted connection from {addr}")
                 threading.Thread(target=self.handle_incoming_message, args=(conn,), daemon=True).start()
             except OSError:
                 self.log(logging.INFO, "Server socket has been closed; stopping connection acceptance.")
                 break
             except Exception as e:
-                if self.online:  # Log errors only if the server was expected to be running
-                    self.log(logging.ERROR, f"Error accepting connection: {e}")
+                # if self.online:  # Log errors only if the server was expected to be running
+                #     self.log(logging.ERROR, f"Error accepting connection: {e}")
                 break
 
     def process_outgoing_messages(self):
@@ -648,7 +648,7 @@ class Node:
             self.log(logging.ERROR, f"Error handling incoming message: {e}")
         finally:
             conn.close()
-            self.log(logging.INFO, "Connection closed.")
+            # self.log(logging.INFO, "Connection closed.")
 
     def start(self):
         self.handle_cli()
