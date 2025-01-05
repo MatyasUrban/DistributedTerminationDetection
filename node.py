@@ -366,8 +366,8 @@ class Node:
 
                 # Mark the task done
                 self.task_in_progress = None
-                if self.work_queue.empty():
-                    self.handle_misra()
+                if self.work_queue.empty() and self.misra_marker_present:
+                        self.handle_misra()
                 self.work_queue.task_done()
 
             except queue.Empty:
