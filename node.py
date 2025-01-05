@@ -656,23 +656,22 @@ class Node:
         self.handle_cli()
 
     def handle_misra(self, current_count=0):
-        with self.lock:
-            if self.is_busy():
-                self.log(logging.INFO, "Marker arrived, but we are active. Will release the marker once we are idle.")
-                self.misra_marker_present = True
-            else:
+        if self.is_busy():
+            self.log(logging.INFO, "Marker arrived, but we are active. Will release the marker once we are idle.")
+            self.misra_marker_present = True
+        else:
+            self.log(logging.INFO,
+                     f"Marker arrived and we are idle. Incrementing marker from {current_count} to {current_count + 1}.")
+            self.misra_process_color = 'white'
+            current_count += 1
+            if self.topology and current_count == len(self.topology):
+                self.log(logging.CRITICAL,
+                         f"MARKER algorithm: Detected global termination! Count of processes in the ring ({len(self.topology)}) == count of contiguous white processes ({current_count})")
+            elif self.successor_id is not None and len(self.topology) > 1:
                 self.log(logging.INFO,
-                         f"Marker arrived and we are idle. Incrementing marker from {current_count} to {current_count + 1}.")
-                self.misra_process_color = 'white'
-                current_count += 1
-                if self.topology and current_count == len(self.topology):
-                    self.log(logging.CRITICAL,
-                             f"MARKER algorithm: Detected global termination! Count of processes in the ring ({len(self.topology)}) == count of contiguous white processes ({current_count})")
-                elif self.successor_id is not None and len(self.topology) > 1:
-                    self.log(logging.INFO,
-                             f"Forwarding MARKER with count={current_count} to Node {self.successor_id}.")
-                    self.build_and_enqueue_message(self.successor_id, "MARKER", current_count)
-                self.misra_marker_present = False
+                         f"Forwarding MARKER with count={current_count} to Node {self.successor_id}.")
+                self.build_and_enqueue_message(self.successor_id, "MARKER", current_count)
+            self.misra_marker_present = False
 
 
 # Main Function
