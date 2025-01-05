@@ -366,8 +366,10 @@ class Node:
 
                 # Mark the task done
                 self.task_in_progress = None
+                if self.work_queue.empty():
+                    self.request_more_work()
                 if self.work_queue.empty() and self.misra_marker_present:
-                        self.handle_misra()
+                    self.handle_misra()
                 self.work_queue.task_done()
 
             except queue.Empty:
@@ -430,6 +432,47 @@ class Node:
             remainder_string = f"{new_start},{goal}"
             self.log(logging.INFO, f"Delegating remainder [{new_start}..{goal}] to successor Node {self.successor_id}")
             self.build_and_enqueue_message(self.successor_id, "DELEGATE_COUNT", remainder_string)
+
+    def request_more_work(self):
+        """
+        Sends a REQUEST message to predecessor, if any, and waits up to 3s for a 'REQUEST_ACK' reply.
+        If the reply has a range in message_content (like 'start,goal'), we call handle_count_task on it.
+        """
+        with self.lock:
+            pred = self.predecessor_id
+        if not pred:
+            self.log(logging.INFO, "No predecessor. Cannot request more work.")
+            return
+
+        # Build & send the REQUEST message
+        msg_id = self.build_and_enqueue_message(pred, "REQUEST")
+        self.log(logging.INFO, f"Sent REQUEST to predecessor Node {pred}, waiting for reply...")
+
+        # Wait up to 3s for a reply
+        start_time = time.time()
+        while time.time() - start_time < 3:
+            if msg_id in self.received_replies:
+                reply_info = self.received_replies[msg_id]
+                reply_type = reply_info["message_type"]
+                reply_content = reply_info["message_content"]
+                self.log(logging.INFO,
+                         f"Received {reply_type} from Node {reply_info['sender_id']} with content={reply_content}")
+                if reply_type == "REQUEST_ACK":
+                    if reply_content:
+                        # e.g. "15,25"
+                        try:
+                            s, g = reply_content.split(",", 1)
+                            start_int, goal_int = int(s), int(g)
+                            self.log(logging.INFO, f"Delegated range received: [{start_int}..{goal_int}]")
+                            self.handle_count_task(start_int, goal_int)
+                        except Exception as e:
+                            self.log(logging.WARNING, f"Invalid range in REQUEST_ACK: {reply_content}, error: {e}")
+                    else:
+                        self.log(logging.INFO, "Predecessor has no tasks to delegate.")
+                return
+            time.sleep(0.1)
+
+        self.log(logging.INFO, "Timeout waiting for REQUEST_ACK from predecessor.")
 
     def start_work_processor(self):
         """Starts the worker thread that processes tasks (e.g., counting)."""
@@ -664,6 +707,25 @@ class Node:
                         new_topology.append(sender_id)
                         new_topology.sort()
                         self.process_topology_update(new_topology, sender_id)
+                    if message_type == "REQUEST":
+                        delegated_start, delegated_goal = None, None
+                        try:
+                            item = self.work_queue.get_nowait()
+                            task_id, task_type, start, goal = item
+                            delegated_start, delegated_goal = start, goal
+                            self.log(logging.INFO,
+                                     f"Delegating local task range [{start}..{goal}] to Node {sender_id} via REQUEST_ACK.")
+                        except queue.Empty:
+                            pass
+
+                        if delegated_start is not None:
+                            content_str = f"{delegated_start},{delegated_goal}"
+                        else:
+                            content_str = None
+
+                        self.build_and_enqueue_message(sender_id, "REQUEST_ACK", content_str, replying_to=message_id)
+                        self.log(logging.INFO, f"Sent REQUEST_ACK to Node {sender_id} with content='{content_str}'.")
+
                     if message_type == "TOPOLOGY_UPDATE":
                         # message_content is expected to be a JSON-serialized list of node IDs
                         try:
