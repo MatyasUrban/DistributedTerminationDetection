@@ -486,7 +486,7 @@ class Node:
                 self.sent_messages[message_payload.get('message_id')] = message_payload
                 self.log(logging.INFO, f"Sent message to Node {target_id}: {json_payload}")
         except Exception as e:
-            self.log(logging.ERROR, f"Failed to send message to Node {target_id}: {e}")
+            # self.log(logging.ERROR, f"Failed to send message to Node {target_id}: {e}")
 
     def build_and_enqueue_message(self, target_id, message_type, message_content=None, replying_to=None):
         """
