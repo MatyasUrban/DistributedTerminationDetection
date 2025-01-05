@@ -227,8 +227,6 @@ class Node:
                 now = time.time()
                 if now < scheduled_time:
                     time_to_wait = scheduled_time - now
-                    self.log(logging.DEBUG,
-                             f"Waiting {time_to_wait:.2f}s before sending message to Node {target_id}.")
                     time.sleep(time_to_wait)
                 self.send_message(target_id, message_payload)
 
