@@ -648,7 +648,7 @@ class Node:
             self.log(logging.ERROR, f"Error handling incoming message: {e}")
         finally:
             conn.close()
-            # self.log(logging.INFO, "Connection closed.")
+            # self.log(logging.INFO, "Connection closed. ")
 
     def start(self):
         self.handle_cli()
