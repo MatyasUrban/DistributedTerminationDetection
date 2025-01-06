@@ -1,6 +1,6 @@
 #!/bin/bash
-git fetch origin main
-git reset --hard origin/main
+git reset --hard  HEAD
+git pull --rebase
 python3 node.py
 
 
