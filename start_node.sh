@@ -1,10 +1,7 @@
 #!/bin/bash
 git reset --hard HEAD
 git pull --rebase
-stdbuf -oL tail -n 0 -f node.log &
-TAIL_PID=$!
 python3 node.py
-kill $TAIL_PID
 
 
 ## Display usage information
