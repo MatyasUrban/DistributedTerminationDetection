@@ -236,24 +236,19 @@ class Node:
                 if self.online:
                     self.log(logging.ERROR, f"Error processing outgoing message: {e}")
 
+    def start_socket(self):
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.server_socket.bind((self.ip, self.port))
+        self.log(logging.INFO, f"Server socket started on {self.ip}:{self.port}")
+
     def start_networking(self):
-        """Initializes and starts the networking components."""
-        try:
-            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server_socket.bind((self.ip, self.port))  # Bind to the same port across all nodes
-            self.server_socket.listen(5)  # Listen for incoming connections
-            self.log(logging.INFO, f"Server socket started on {self.ip}:{self.port}")
-
-            # Start a thread to handle incoming connections
-            self.incoming_connections_thread = threading.Thread(target=self.accept_connections, daemon=True)
-            self.incoming_connections_thread.start()
-
-            # Start a thread to process outgoing messages
-            self.outgoing_connections_thread = threading.Thread(target=self.process_outgoing_messages, daemon=True)
-            self.outgoing_connections_thread.start()
-        except Exception as e:
-            self.log(logging.CRITICAL, f"Failed to start networking: {e}")
+        self.server_socket.listen(5)
+        self.log(logging.INFO, "Server socket is listenning.")
+        self.incoming_connections_thread = threading.Thread(target=self.accept_connections, daemon=True)
+        self.incoming_connections_thread.start()
+        self.outgoing_connections_thread = threading.Thread(target=self.process_outgoing_messages, daemon=True)
+        self.outgoing_connections_thread.start()
 
     def probe_for_successor(self):
         """
@@ -306,19 +301,12 @@ class Node:
 
     def stop_networking(self):
         """Stops the networking components and closes the server socket."""
-        try:
-            if self.server_socket:
-                self.server_socket.close()  # Close the server socket to unblock accept()
-                self.server_socket = None
-                self.log(logging.INFO, "Server socket has been closed.")
-            else:
-                self.log(logging.WARNING, "Server socket is already closed.")
-            if self.incoming_connections_thread and self.incoming_connections_thread.is_alive():
-                self.incoming_connections_thread.join(timeout=2)
-            if self.outgoing_connections_thread and self.outgoing_connections_thread.is_alive():
-                self.outgoing_connections_thread.join(timeout=2)
-        except Exception as e:
-            self.log(logging.ERROR, f"Error stopping networking: {e}")
+        self.server_socket.shutdown(socket.SHUT_RDWR)
+        self.log(logging.INFO, "Server socket is shut down.")
+        if self.incoming_connections_thread and self.incoming_connections_thread.is_alive():
+            self.incoming_connections_thread.join(timeout=2)
+        if self.outgoing_connections_thread and self.outgoing_connections_thread.is_alive():
+            self.outgoing_connections_thread.join(timeout=2)
 
     def leave(self):
         with self.lock:  # Ensure thread-safe access
@@ -773,6 +761,7 @@ class Node:
             # self.log(logging.INFO, "Connection closed. ")
 
     def start(self):
+        self.start_socket()
         self.handle_cli()
 
     def handle_misra(self, current_count=0):
