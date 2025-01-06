@@ -240,6 +240,7 @@ class Node:
         """Initializes and starts the networking components."""
         try:
             self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_socket.bind((self.ip, self.port))  # Bind to the same port across all nodes
             self.server_socket.listen(5)  # Listen for incoming connections
             self.log(logging.INFO, f"Server socket started on {self.ip}:{self.port}")
