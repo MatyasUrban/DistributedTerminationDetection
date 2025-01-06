@@ -55,10 +55,10 @@ class Node:
         self.log_categories = {key: True for key in self.CATEGORY_LABELS.keys()}
         """Initializes the node with default values and state."""
         self.id = None
+        self.logical_clock = 0
         self.ip = self.get_local_ip()
         self.port = 5000
         self.online = False
-        self.logical_clock = 0
         self.delay = 0
         self.lock = threading.Lock()
         self.init_node_id()
