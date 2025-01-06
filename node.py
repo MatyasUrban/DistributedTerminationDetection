@@ -43,16 +43,6 @@ logger = logging.getLogger()
 # --- NODE CLASS ---
 class Node:
     def __init__(self):
-        """Initializes the node with default values and state."""
-        self.id = None
-        self.ip = self.get_local_ip()
-        self.port = 5000
-        self.online = False
-        self.logical_clock = 0
-        self.delay = 0
-        self.lock = threading.Lock()
-        self.init_node_id()
-        self.server_socket = None
         self.CATEGORY_LABELS = {
             'h': 'HEARTBEAT',
             'm': 'MISRA',
@@ -63,6 +53,17 @@ class Node:
             'c': 'MESSAGING'
         }
         self.log_categories = {key: True for key in self.CATEGORY_LABELS.keys()}
+        """Initializes the node with default values and state."""
+        self.id = None
+        self.ip = self.get_local_ip()
+        self.port = 5000
+        self.online = False
+        self.logical_clock = 0
+        self.delay = 0
+        self.lock = threading.Lock()
+        self.init_node_id()
+        self.server_socket = None
+
 
         # Core components
         self.outgoing_queue = queue.Queue()
