@@ -524,7 +524,7 @@ class Node:
                 elif command == "count":
                     self.handle_count_task(1, int(content[0]))
                 elif command == "misra":
-                    self.handle_misra(0)
+                    self.handle_misra(-1)
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
@@ -769,6 +769,12 @@ class Node:
             self.log(logging.INFO, "Marker arrived, but we are active. Will release the marker once we are idle.")
             self.misra_marker_present = True
         else:
+            if not self.successor_id:
+                self.log(logging.INFO,
+                         f"Marker arrived and we are idle. Incrementing marker from 0 to 1.")
+                self.log(logging.CRITICAL,
+                         f"MARKER algorithm: Detected global termination! Count of processes in the ring ({len(self.topology)}) == count of contiguous white processes ({current_count})")
+                return
             self.log(logging.INFO,
                      f"Marker arrived and we are idle. Incrementing marker from {current_count} to {current_count + 1}.")
             self.misra_process_color = 'white'
