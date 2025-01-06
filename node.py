@@ -33,18 +33,26 @@ CHECK_INTERVAL      = 1
 
 # --- LOGGING CONFIGURATION ---
 log_file = "node.log"
+logging.basicConfig(
+    filename=log_file,
+    level=logging.DEBUG,
+    format="%(levelname)s\tNode: %(node_id)s\tLogical Clock: %(clock)s\t%(message)s",
+)
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler(log_file)
-file_handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(levelname)s\tNode: %(node_id)s\tLogical Clock: %(clock)s\t%(message)s')
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 # --- NODE CLASS ---
 class Node:
     def __init__(self):
         """Initializes the node with default values and state."""
+        self.id = None
+        self.ip = self.get_local_ip()
+        self.port = 5000
+        self.online = False
+        self.logical_clock = 0
+        self.delay = 0
+        self.lock = threading.Lock()
+        self.init_node_id()
+        self.server_socket = None
         self.CATEGORY_LABELS = {
             'h': 'HEARTBEAT',
             'm': 'MISRA',
@@ -55,15 +63,7 @@ class Node:
             'c': 'MESSAGING'
         }
         self.log_categories = {key: True for key in self.CATEGORY_LABELS.keys()}
-        self.id = None
-        self.ip = self.get_local_ip()
-        self.port = 5000
-        self.online = False
-        self.logical_clock = 0
-        self.delay = 0
-        self.lock = threading.Lock()
-        self.init_node_id()
-        self.server_socket = None
+
         # Core components
         self.outgoing_queue = queue.Queue()
         self.outgoing_connections_thread = None
@@ -124,12 +124,21 @@ class Node:
             sys.exit(1)
         self.log('i', f"Initialized as Node {self.id} with IP {self.ip}")
 
-    def log(self, cat: str, message: str, level: int = logging.INFO):
-        cat_label = self.CATEGORY_LABELS.get(cat, 'UNKNOWN')
-        file_message = f"[{cat_label}] {message}"
+    def log(self, cat, message, level = logging.INFO):
+        cat_labels = {
+            'h': 'HEARTBEAT',
+            'm': 'MISRA',
+            't': 'TOPOLOGY',
+            'n': 'NETWORKING',
+            'w': 'WORK',
+            'i': 'INTERNAL',
+            'c': 'MESSAGING'
+        }
+        cat_label = cat_labels.get(cat, 'UNKNOWN')
+        global logger
         logger.log(
             level,
-            file_message,
+            f"[{cat_label}] {message}",
             extra={
                 "node_id": getattr(self, "id", "N/A"),
                 "clock": getattr(self, "logical_clock", "N/A")
