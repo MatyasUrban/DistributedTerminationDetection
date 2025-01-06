@@ -659,8 +659,8 @@ class Node:
             return
 
         if self.successor_id not in new_topology:
-            self.log(logging.INFO, f"Forwarding topology update to successor Node {self.successor_id}, who is leaving.")
             self.build_and_enqueue_message(self.successor_id, "TOPOLOGY_UPDATE", json.dumps(new_topology))
+            self.log(logging.INFO, f"Forwarding topology update to successor Node {self.successor_id}, who is leaving.")
         # Normal update: update local topology, predecessor/successor, forward along
         self.topology = new_topology
         self.topology.sort()
