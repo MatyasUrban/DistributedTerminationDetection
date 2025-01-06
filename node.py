@@ -492,6 +492,16 @@ class Node:
         in_progress = (self.task_in_progress is not None)
         queue_non_empty = not self.work_queue.empty()
         return in_progress or queue_non_empty
+    def assert_online_offline_commands(self, command):
+        online_commands = ['leave', 'count', 'misra']
+        offline_commands = ['join']
+        if command in online_commands and not self.online:
+            self.log(logging.WARNING, 'You must firstly join the topology before using this command.')
+            return False
+        if command in offline_commands and self.online:
+            self.log(logging.WARNING, 'You must firstly leave the topology before using this command.')
+            return False
+        return True
 
     def handle_cli(self):
         """Handles CLI commands in a dedicated thread."""
@@ -499,8 +509,11 @@ class Node:
         print("Node CLI is ready. Type your command.")
         while True:
             try:
+
                 full_command = input().strip().lower().split()
                 command = full_command[0]
+                if not self.assert_online_offline_commands(command):
+                    continue
                 content = None
                 if len(full_command)>1:
                     content = full_command[1:]
@@ -509,7 +522,7 @@ class Node:
                     self.join()
                 elif command == "leave":
                     self.log(logging.INFO, 'Initiating removal of ourselves from the topology.')
-                    if self.topology and self.successor_id:
+                    if self.successor_id:
                         new_topology = self.topology[:]
                         new_topology.remove(self.id)
                         self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', json.dumps(new_topology))
@@ -521,12 +534,8 @@ class Node:
                     self.set_delay(content)
                 elif command == "count":
                     self.handle_count_task(1, int(content[0]))
-                elif command == "send":
-                    target_id = int(content[0])
-                    message_text = " ".join(content[1:])  # capture full text
-                    self.build_and_enqueue_message(target_id, 'TEXT', message_text)
-                elif command == "startmisra":
-                    self.handle_misra(-1)
+                elif command == "misra":
+                    self.handle_misra(0)
                 elif command == "quit":
                     self.log(logging.INFO, "Node is shutting down via CLI.")
                     sys.exit(0)
