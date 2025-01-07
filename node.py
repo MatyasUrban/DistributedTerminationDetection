@@ -361,7 +361,7 @@ class Node:
             self.log('i', "Status: " + status_info)
     def set_delay(self, content):
         self.log('i', "Delay change requested.")
-        self.delay = int(content[0])
+        self.delay = content
         self.log('i', f"Delay set to: {self.delay}s.")
 
     def process_tasks(self):
@@ -545,9 +545,6 @@ class Node:
                 command = full_command[0]
                 if not self.assert_online_offline_commands(command):
                     continue
-                content = None
-                if len(full_command)>1:
-                    content = full_command[1:]
                 elif command == "join":
                     self.join()
                 elif command == "leave":
@@ -561,9 +558,10 @@ class Node:
                 elif command == "status":
                     self.status()
                 elif command == "delay":
-                    self.set_delay(content)
+                    self.set_delay(int(full_command[1]))
                 elif command == "count":
-                    self.handle_count_task(1, int(content[0]))
+                    print('printing content '+full_command[1])
+                    self.handle_count_task(1, int(full_command[1]))
                 elif command == "misra":
                     self.handle_misra(-1)
                 elif command == "quit":
