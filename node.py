@@ -39,6 +39,15 @@ logging.basicConfig(
     format="%(levelname)s\tNode: %(node_id)s\tLogical Clock: %(clock)s\t%(message)s",
 )
 logger = logging.getLogger()
+CAT_LABELS = {
+    'h': 'HEARTBEAT',
+    'm': 'MISRA',
+    't': 'TOPOLOGY',
+    'n': 'NETWORKING',
+    'w': 'WORK',
+    'i': 'INTERNAL',
+    'c': 'MESSAGING'
+}
 
 # --- NODE CLASS ---
 class Node:
@@ -126,16 +135,7 @@ class Node:
         self.log('i', f"Initialized as Node {self.id} with IP {self.ip}")
 
     def log(self, cat, message, level = logging.INFO):
-        cat_labels = {
-            'h': 'HEARTBEAT',
-            'm': 'MISRA',
-            't': 'TOPOLOGY',
-            'n': 'NETWORKING',
-            'w': 'WORK',
-            'i': 'INTERNAL',
-            'c': 'MESSAGING'
-        }
-        cat_label = cat_labels.get(cat, 'UNKNOWN')
+        cat_label = CAT_LABELS.get(cat, 'UNKNOWN')
         global logger
         logger.log(
             level,
@@ -525,14 +525,19 @@ class Node:
                     if cat in self.log_categories:
                         if sign == '+':
                             self.log_categories[cat] = True
-                            print(f"Enabled printing for category '{cat}'.")
+                            print(f"Enabled printing for category '{CAT_LABELS[cat]}'.")
                         elif sign == '-':
                             self.log_categories[cat] = False
-                            print(f"Disabled printing for category '{cat}'.")
+                            print(f"Disabled printing for category '{CAT_LABELS[cat]}'.")
                         elif sign == '.':
-                            for key in self.log_categories.keys():
-                                self.log_categories[key] = False
                             self.log_categories[cat] = True
+                            print(f"Enabled printing for category '{CAT_LABELS[cat]}'.")
+                            for key in self.log_categories.keys():
+                                if key == cat:
+                                    continue
+                                self.log_categories[key] = False
+                                print(f"Disabled printing for category '{CAT_LABELS[cat]}'.")
+
                     else:
                         print(f"Unknown category '{cat}'. Known are {list(self.log_categories.keys())}")
                     continue
