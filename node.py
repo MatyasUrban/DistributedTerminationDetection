@@ -520,8 +520,7 @@ class Node:
 
     def get_misra_status(self):
         return (
-            f"Process Color: {self.misra_process_color.capitalize()}\n"
-            f"Marker Present: {'Yes' if self.misra_marker_present else 'No'}"
+            f"Process Color: {self.misra_process_color.capitalize()} Marker Present: {'Yes' if self.misra_marker_present else 'No'}"
         )
 
     def get_current_task_info(self):
@@ -537,12 +536,9 @@ class Node:
             heartbeat_status = self.get_heartbeat_status()
             misra_status = self.get_misra_status()
             pending_tasks = self.work_queue.qsize()
-            current_task = self.get_current_task_info()
-            sent_messages = len(self.sent_messages)
-            received_replies = len(self.received_replies)
 
             status_info = (
-                "\n\n'---- Node Status ----\n"
+                "'---- Node Status ----\n"
                 f"Node ID          : {self.id}\n"
                 f"IP Address       : {self.ip}\n"
                 f"Online           : {'Yes' if self.online else 'No'}\n"
@@ -553,15 +549,11 @@ class Node:
                 f"Predecessor ID   : {self.predecessor_id if self.predecessor_id is not None else 'None'}\n"
                 f"Successor ID     : {self.successor_id if self.successor_id is not None else 'None'}\n"
                 f"Pending Tasks    : {pending_tasks}\n"
-                f"Current Task     : {current_task}\n"
                 f"Heartbeat Status : {heartbeat_status}\n"
-                f"Misra Status     :\n{misra_status}\n"
-                f"Sent Messages    : {sent_messages}\n"
-                f"Received Replies : {received_replies}\n"
+                f"Misra Status     : {misra_status}\n"
                 "----------------------"
             )
 
-            self.log('i', "Status requested.")
             self.log('i', status_info)
             print(status_info)
 
