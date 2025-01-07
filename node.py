@@ -160,13 +160,13 @@ class Node:
         while self.online:
             with self.lock:
                 succ = self.successor_id
-
+            self.increase_logical_clock('my heart beated')
             if succ is not None:
                 # Enqueue a heartbeat
                 self.build_and_enqueue_message(succ, "HEARTBEAT", "ping")
                 self.log('h', f"Sending HEARTBEAT to successor Node {succ}")
             else:
-                self.log('h', "No successor - skipping heartbeat this round.")
+                self.log('h', "No successor - noone to send my heartbeat this round.")
 
             # Sleep for the interval
             for _ in range(HEARTBEAT_INTERVAL):
