@@ -44,22 +44,24 @@ CAT_LABELS = {
     'm': 'MISRA',
     't': 'TOPOLOGY',
     'n': 'NETWORKING',
-    'w': 'WORK',
+    'w': 'WORK TASK',
     'i': 'INTERNAL',
-    'c': 'MESSAGING'
+    'c': 'MESSAGING',
+    'l': 'LOGICAL CLOCK'
 }
 
 # --- NODE CLASS ---
 class Node:
     def __init__(self):
         self.CATEGORY_LABELS = {
-            'h': 'HEARTBEAT',
-            'm': 'MISRA',
-            't': 'TOPOLOGY',
-            'n': 'NETWORKING',
-            'w': 'WORK',
-            'i': 'INTERNAL',
-            'c': 'MESSAGING'
+            'h': True,
+            'm': True,
+            't': True,
+            'n': True,
+            'w': True,
+            'i': True,
+            'c': True,
+            'l': True
         }
         self.log_categories = {key: True for key in self.CATEGORY_LABELS.keys()}
         """Initializes the node with default values and state."""
@@ -664,7 +666,7 @@ class Node:
             old_value = self.logical_clock
             self.logical_clock = max(self.logical_clock, sender_clock) + 1
             new_value = self.logical_clock
-            self.log('i', f"Logical Clock increased {old_value}->{new_value}. Reason: {reason}")
+            self.log('c', f"Logical Clock increased {old_value}->{new_value}. Reason: {reason}")
         return new_value
 
     def process_topology_update(self, new_topology, sender_id):
