@@ -511,16 +511,9 @@ class Node:
         else:
             print(f"Unknown category '{cat}'. Known are {list(self.log_categories.keys())}")
 
-    def get_heartbeat_status(self):
-        if self.predecessor_last_heartbeat_time:
-            time_since_last_hb = time.time() - self.predecessor_last_heartbeat_time
-            return f"Active (Last heartbeat {time_since_last_hb:.1f}s ago)"
-        else:
-            return "Inactive (No predecessor)"
-
     def get_misra_status(self):
         return (
-            f"Process Color: {self.misra_process_color.capitalize()} Marker Present: {'Yes' if self.misra_marker_present else 'No'}"
+            f"Process Color: {self.misra_process_color.capitalize()}  Marker Present: {'Yes' if self.misra_marker_present else 'No'}"
         )
 
     def get_current_task_info(self):
@@ -533,7 +526,6 @@ class Node:
     def get_node_status(self):
         with self.lock:
             busy_state = "BUSY" if self.is_busy() else "IDLE"
-            heartbeat_status = self.get_heartbeat_status()
             misra_status = self.get_misra_status()
             pending_tasks = self.work_queue.qsize()
 
@@ -549,7 +541,6 @@ class Node:
                 f"Predecessor ID   : {self.predecessor_id if self.predecessor_id is not None else 'None'}\n"
                 f"Successor ID     : {self.successor_id if self.successor_id is not None else 'None'}\n"
                 f"Pending Tasks    : {pending_tasks}\n"
-                f"Heartbeat Status : {heartbeat_status}\n"
                 f"Misra Status     : {misra_status}\n"
                 "----------------------"
             )
