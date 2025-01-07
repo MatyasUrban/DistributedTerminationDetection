@@ -519,7 +519,7 @@ class Node:
 
                 line = input().strip()
                 self.log('i', f"Received CLI input: {line}")
-                if (line.startswith('+') or line.startswith('-') or line.startswith('.')) and len(line) == 2:
+                if (line.startswith(('+', '-', '.'))) and len(line) == 2:
                     sign = line[0]
                     cat = line[1]
                     if cat in self.log_categories:
