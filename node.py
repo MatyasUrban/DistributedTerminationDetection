@@ -511,13 +511,59 @@ class Node:
         else:
             print(f"Unknown category '{cat}'. Known are {list(self.log_categories.keys())}")
 
+    def get_heartbeat_status(self):
+        if self.predecessor_last_heartbeat_time:
+            time_since_last_hb = time.time() - self.predecessor_last_heartbeat_time
+            return f"Active (Last heartbeat {time_since_last_hb:.1f}s ago)"
+        else:
+            return "Inactive (No predecessor)"
+
+    def get_misra_status(self):
+        return (
+            f"Process Color: {self.misra_process_color.capitalize()}\n"
+            f"Marker Present: {'Yes' if self.misra_marker_present else 'No'}"
+        )
+
+    def get_current_task_info(self):
+        if self.task_in_progress:
+            task_id, task_type, start, goal = self.task_in_progress
+            return f"Task ID: {task_id}, Type: {task_type}, Range: ({start}..{goal})"
+        else:
+            return "None"
 
     def get_node_status(self):
-        with (self.lock):  # Ensure thread-safe access
-            self.log('i', "Status requested.")
+        with self.lock:
             busy_state = "BUSY" if self.is_busy() else "IDLE"
-            status_info = f"Node ID: {self.id}, IP Address: {self.ip}, Online: {self.online}, Logical Clock: {self.logical_clock}, Message Delay: {self.delay}s, Work State: {busy_state}, Topology: {self.topology}, Predecessor: {self.predecessor_id}, Successor: {self.successor_id}\n"
-            self.log('i', "Status: " + status_info)
+            heartbeat_status = self.get_heartbeat_status()
+            misra_status = self.get_misra_status()
+            pending_tasks = self.work_queue.qsize()
+            current_task = self.get_current_task_info()
+            sent_messages = len(self.sent_messages)
+            received_replies = len(self.received_replies)
+
+            status_info = (
+                "\n\n'---- Node Status ----\n"
+                f"Node ID          : {self.id}\n"
+                f"IP Address       : {self.ip}\n"
+                f"Online           : {'Yes' if self.online else 'No'}\n"
+                f"Logical Clock    : {self.logical_clock}\n"
+                f"Message Delay    : {self.delay}s\n"
+                f"Work State       : {busy_state}\n"
+                f"Topology         : {self.topology if self.topology else 'None'}\n"
+                f"Predecessor ID   : {self.predecessor_id if self.predecessor_id is not None else 'None'}\n"
+                f"Successor ID     : {self.successor_id if self.successor_id is not None else 'None'}\n"
+                f"Pending Tasks    : {pending_tasks}\n"
+                f"Current Task     : {current_task}\n"
+                f"Heartbeat Status : {heartbeat_status}\n"
+                f"Misra Status     :\n{misra_status}\n"
+                f"Sent Messages    : {sent_messages}\n"
+                f"Received Replies : {received_replies}\n"
+                "----------------------"
+            )
+
+            self.log('i', "Status requested.")
+            self.log('i', status_info)
+            print(status_info)
 
     # OUTGOING MESSAGING
 
