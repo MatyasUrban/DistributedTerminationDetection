@@ -518,14 +518,7 @@ class Node:
             try:
 
                 line = input().strip()
-                full_command = line.lower().split()
-                command = full_command[0]
-                if not self.assert_online_offline_commands(command):
-                    continue
-                content = None
-                if len(line)>1:
-                    content = full_command[1:]
-                self.log('i', f"Received CLI command: {command}")
+                self.log('i', f"Received CLI input: {line}")
                 if (line.startswith('+') or line.startswith('-')) and len(line) == 2:
                     sign = line[0]
                     cat = line[1]
@@ -533,12 +526,23 @@ class Node:
                         if sign == '+':
                             self.log_categories[cat] = True
                             print(f"Enabled printing for category '{cat}'.")
-                        else:
+                        elif sign == '-':
                             self.log_categories[cat] = False
                             print(f"Disabled printing for category '{cat}'.")
+                        elif sign == '.':
+                            for key in self.log_categories.keys():
+                                self.log_categories[key] = False
+                            self.log_categories[cat] = True
                     else:
                         print(f"Unknown category '{cat}'. Known are {list(self.log_categories.keys())}")
                     continue
+                full_command = line.lower().split()
+                command = full_command[0]
+                if not self.assert_online_offline_commands(command):
+                    continue
+                content = None
+                if len(full_command)>1:
+                    content = full_command[1:]
                 elif command == "join":
                     self.join()
                 elif command == "leave":
