@@ -538,7 +538,7 @@ class Node:
             pending_tasks = self.work_queue.qsize()
 
             status_info = (
-                "'---- Node Status ----\n"
+                "\n---- Node Status ----\n"
                 f"Node ID          : {self.id}\n"
                 f"IP Address       : {self.ip}\n"
                 f"Online           : {'Yes' if self.online else 'No'}\n"
@@ -555,7 +555,6 @@ class Node:
             )
 
             self.log('i', status_info)
-            print(status_info)
 
     # OUTGOING MESSAGING
 
