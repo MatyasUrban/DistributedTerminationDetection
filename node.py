@@ -162,12 +162,10 @@ class Node:
     def _my_heartbeat_loop(self):
         self.log('h', "Heartbeat thread started.")
         while self.online:
-            with self.lock:
-                succ = self.successor_id
             self.increase_logical_clock('my heart beated')
-            if succ is not None:
-                self.build_and_enqueue_message(succ, "HEARTBEAT", "ping")
-                self.log('h', f"Sending HEARTBEAT to successor Node {succ}")
+            if self.successor_id is not None:
+                self.build_and_enqueue_message(self.successor_id, "HEARTBEAT", "ping")
+                self.log('h', f"Sending HEARTBEAT to successor Node {self.successor_id}")
             else:
                 self.log('h', "No successor - noone to send my heartbeat this round.")
 
@@ -373,7 +371,7 @@ class Node:
             self.enqueue_count_task(start, goal)
             return
 
-        if not self.successor_id:
+        if self.successor_id is None:
             self.log('w', f"No successor. We'll split range into multiple local tasks.")
             current = start
             while current <= goal:
@@ -460,7 +458,7 @@ class Node:
                     self.join()
                 elif command == "leave":
                     self.log('t', 'Initiating removal of ourselves from the topology.')
-                    if self.successor_id:
+                    if self.successor_id is not None:
                         new_topology = self.topology[:]
                         new_topology.remove(self.id)
                         self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', json.dumps(new_topology))
@@ -693,7 +691,7 @@ class Node:
             self.leave()
             return
 
-        if self.successor_id not in new_topology:
+        if self.successor_id is not None and self.successor_id not in new_topology:
             self.build_and_enqueue_message(self.successor_id, "TOPOLOGY_UPDATE", json.dumps(new_topology))
             self.log('t', f"Forwarding topology update to successor Node {self.successor_id}, who is leaving.")
         self.topology = new_topology
@@ -755,7 +753,7 @@ class Node:
             self.log('m', "Marker arrived, but we are active. Will release the marker once we are idle.")
             self.misra_marker_present = True
         else:
-            if not self.successor_id:
+            if self.successor_id is None:
                 self.log('m',
                          f"Marker arrived and we are idle. Incrementing marker from 0 to 1.")
                 self.log('m',
