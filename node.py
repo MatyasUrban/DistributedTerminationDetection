@@ -473,7 +473,7 @@ class Node:
                 elif command == "count":
                     self.handle_received_count_task(1, int(full_command[1]))
                 elif command == "misra":
-                    self.handle_misra(-1)
+                    self.handle_misra(0)
                 elif command == "quit":
                     self.log('i', "Node is shutting down per user request.")
                     sys.exit(0)
@@ -739,7 +739,7 @@ class Node:
             current_count += 1
             if self.topology and current_count == len(self.topology):
                 self.log('m',
-                         f"MARKER algorithm: Detected global termination! Count of processes in the ring ({len(self.topology)}) == count of contiguous white processes ({current_count})")
+                         f"MARKER algorithm: Detected global termination! Count of nodes in the ring ({len(self.topology)}) == count of contiguous white processes ({current_count})")
             elif self.successor_id is not None and len(self.topology) > 1:
                 self.log('m',
                          f"Forwarding MARKER with count={current_count} to Node {self.successor_id}.")
