@@ -324,6 +324,7 @@ class Node:
         self.monitor_predecessor_heartbeat_thread.start()
 
     def join(self):
+        self.increase_logical_clock('joining the topology')
         self.online = True
         self.start_networking()
         self.start_work_processor()
@@ -342,6 +343,7 @@ class Node:
 
     def leave(self):
         with self.lock:
+            self.increase_logical_clock('leaving the topology')
             self.online = False
             self.stop_networking()
             self.stop_work_processor()
@@ -371,6 +373,9 @@ class Node:
                 # Wait for a task to become available
                 task_id, task_type, start, goal = self.work_queue.get(timeout=1)
                 self.task_in_progress = (task_id, task_type)
+
+                self.increase_logical_clock(f'processing task {task_id}')
+
                 if task_type == "count":
                     # Perform counting from 1 to task_goal
                     self.log('w', f"Executing count task {task_id} for range {start}..{goal}")
@@ -397,9 +402,7 @@ class Node:
                 self.task_in_progress = None
 
     def enqueue_count_task(self, start: int, goal: int):
-        with self.lock:
-            self.logical_clock += 1
-            current_clock = self.logical_clock
+        self.increase_logical_clock(f'enqueuing new tak ({start}..{goal})')
 
         task_id = f"{self.id}-{current_clock}-({start}..{goal})"
         self.work_queue.put((task_id, "count", start, goal))
@@ -416,6 +419,8 @@ class Node:
         if total_count <= 0:
             self.log('w', f"Count task received invalid range [{start}..{goal}]. No tasks enqueued.")
             return
+
+        self.increase_logical_clock(f'handling count task [{start}..{goal}]')
 
         # If range size <= 10, just enqueue one local counting task.
         if total_count <= 10:
@@ -619,10 +624,8 @@ class Node:
         }
         """
         # Increment logical clock before sending
-        with self.lock:
-            self.logical_clock += 1
-            sender_clock = self.logical_clock
-            sender_id = self.id
+        sender_clock = self.increase_logical_clock('creating a new message')
+        sender_id = self.id
 
         message_id = f"{sender_id}-{sender_clock}"
         message_payload = {
@@ -647,8 +650,7 @@ class Node:
             # Extract sender clock
             sender_clock = payload.get("sender_clock", 0)
             # Update local logical clock: max(local, sender) + 1
-            with self.lock:
-                self.logical_clock = max(self.logical_clock, sender_clock) + 1
+            self.increase_logical_clock('received message, max(myClock, senderClock)', sender_clock)
             return payload
         except json.JSONDecodeError:
             self.log('c', f"Failed to decode JSON: {raw_data}")
@@ -656,6 +658,14 @@ class Node:
         except Exception as e:
             self.log('c', f"Error parsing message: {e}")
             return None
+
+    def increase_logical_clock(self, reason, sender_clock=0):
+        with self.lock:
+            old_value = self.logical_clock
+            self.logical_clock = max(self.logical_clock, sender_clock) + 1
+            new_value = self.logical_clock
+            self.log('i', f"Logical Clock increased {old_value}->{new_value}. Reason: {reason}")
+        return new_value
 
     def process_topology_update(self, new_topology, sender_id):
         """
@@ -672,6 +682,8 @@ class Node:
                                    f"but we already have this topology = {new_topology}. "
                                    f"Stopping the ring update.")
             return
+
+        self.increase_logical_clock(f'processing topology update from Node {sender_id}')
 
         # Are we removed?
         if self.id not in new_topology:
@@ -801,6 +813,7 @@ class Node:
 
 
     def handle_misra(self, current_count=0):
+        self.increase_logical_clock('handling MARKER for termination detection')
         if self.is_busy():
             self.log('m', "Marker arrived, but we are active. Will release the marker once we are idle.")
             self.misra_marker_present = True
