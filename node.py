@@ -536,7 +536,7 @@ class Node:
                                 if key == cat:
                                     continue
                                 self.log_categories[key] = False
-                                print(f"Disabled printing for category '{CAT_LABELS[cat]}'.")
+                                print(f"Disabled printing for category '{CAT_LABELS[key]}'.")
 
                     else:
                         print(f"Unknown category '{cat}'. Known are {list(self.log_categories.keys())}")
