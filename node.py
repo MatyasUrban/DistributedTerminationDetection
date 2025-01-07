@@ -635,8 +635,6 @@ class Node:
         }
         scheduled_time = time.time() + self.delay
         self.outgoing_queue.put((target_id, message_payload, scheduled_time))
-        self.log('c',
-                 f"Enqueued message to Node {target_id} at scheduled time {scheduled_time:.2f}")
         return message_id
 
     def parse_message(self, raw_data):
@@ -718,7 +716,7 @@ class Node:
                     message_type = payload.get("message_type")
                     message_content = payload.get("message_content")
                     replying_to = payload.get("replying_to")
-                    self.log('c', f"Received {message_type} message from Node {sender_id}: {message_content} (Message ID: {message_id})")
+                    self.log('c', f"Received message from Node {sender_id}: {payload}")
                     self.misra_process_color = 'black'
                     if replying_to is not None and replying_to in self.sent_messages:
                         original_message = self.sent_messages[replying_to]
@@ -811,7 +809,7 @@ class Node:
                 self.log('m',
                          f"Marker arrived and we are idle. Incrementing marker from 0 to 1.")
                 self.log('m',
-                         f"MARKER algorithm: Detected global termination! Count of processes in the ring ({len(self.topology)}) == count of contiguous white processes ({current_count})")
+                         f"MARKER algorithm: Detected global termination! Count of processes in the ring (1) == count of contiguous white processes (1})")
                 return
             self.log('m',
                      f"Marker arrived and we are idle. Incrementing marker from {current_count} to {current_count + 1}.")
