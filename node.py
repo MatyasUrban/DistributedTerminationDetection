@@ -809,7 +809,7 @@ class Node:
                 self.log('m',
                          f"Marker arrived and we are idle. Incrementing marker from 0 to 1.")
                 self.log('m',
-                         f"MARKER algorithm: Detected global termination! Count of processes in the ring (1) == count of contiguous white processes (1})")
+                         f"MARKER algorithm: Detected global termination! Count of processes in the ring (1) == count of contiguous white processes (1)")
                 return
             self.log('m',
                      f"Marker arrived and we are idle. Incrementing marker from {current_count} to {current_count + 1}.")
