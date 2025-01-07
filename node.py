@@ -404,7 +404,7 @@ class Node:
                 self.task_in_progress = None
 
     def enqueue_count_task(self, start: int, goal: int):
-        self.increase_logical_clock(f'enqueuing new tak ({start}..{goal})')
+        current_clock = self.increase_logical_clock(f'enqueuing new tak ({start}..{goal})')
 
         task_id = f"{self.id}-{current_clock}-({start}..{goal})"
         self.work_queue.put((task_id, "count", start, goal))
@@ -666,7 +666,7 @@ class Node:
             old_value = self.logical_clock
             self.logical_clock = max(self.logical_clock, sender_clock) + 1
             new_value = self.logical_clock
-            self.log('c', f"Logical Clock increased {old_value}->{new_value}. Reason: {reason}")
+            self.log('l', f"Logical Clock increased {old_value}->{new_value}. Reason: {reason}")
         return new_value
 
     def process_topology_update(self, new_topology, sender_id):
