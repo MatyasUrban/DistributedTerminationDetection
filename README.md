@@ -81,10 +81,10 @@ In distributed systems, determining when the entire network has completed its ta
    - Similarly, when a node receives a task and starts processing it, it paints itself black to indicate activity.
 
 2. **Initiating Termination Detection**:
-   - A **marker command** can be issued to start the termination detection process at any node.
+   - A **misra command** can be issued to start the termination detection process at any node.
    - Upon receiving the marker command, the node:
+     - **Paints itself white** befif it is idle or prepares to paint itself white once it becomes idle.
      - **Sends a marker message** to its successor.
-     - **Paints itself white** if it is idle or prepares to paint itself white once it becomes idle.
    
 3. **Handling Markers**:
    - When a node receives a **marker message**:
