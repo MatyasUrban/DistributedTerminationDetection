@@ -394,7 +394,7 @@ class Node:
     def request_more_work(self):
         with self.lock:
             pred = self.predecessor_id
-        if not pred:
+        if pred is None:
             self.log('w', "No predecessor. Cannot request more work.")
             return
 
