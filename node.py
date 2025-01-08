@@ -52,17 +52,7 @@ CAT_LABELS = {
 
 class Node:
     def __init__(self):
-        self.CATEGORY_LABELS = {
-            'h': True,
-            'm': True,
-            't': True,
-            'n': True,
-            'w': True,
-            'i': True,
-            'c': True,
-            'l': True
-        }
-        self.log_categories = {key: True for key in self.CATEGORY_LABELS.keys()}
+        self.log_categories = {key: True for key in CAT_LABELS.keys()}
         self.id = None
         self.logical_clock = 0
         self.ip = self.get_local_ip()
@@ -140,7 +130,7 @@ class Node:
                 "clock": getattr(self, "logical_clock", "N/A")
             }
         )
-        if self.log_categories and self.log_categories.get(cat, True):
+        if cat == 's' or (self.log_categories.get(cat, False)):
             console_line = f"{cat_label}\tN{self.id}\tC{self.logical_clock}\t{message}"
             print(console_line)
 
@@ -492,6 +482,12 @@ class Node:
     def change_console_logging(self, line):
         sign = line[0]
         cat = line[1]
+        if cat == 'a':
+            if sign not in ('+', '-'):
+                print(f"For turning all categories on/off please use '+a'/'-a'")
+            for key in self.log_categories.keys():
+                self.log_categories[key] = False if sign == '-' else True
+                print(f"Enabled printing for category '{CAT_LABELS[key]}'.")
         if cat in self.log_categories:
             if sign == '+':
                 self.log_categories[cat] = True
