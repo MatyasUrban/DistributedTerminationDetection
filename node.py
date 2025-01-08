@@ -603,7 +603,7 @@ class Node:
         try:
             payload = json.loads(raw_data)
             sender_clock = payload.get("sender_clock", 0)
-            self.increase_logical_clock('received message, max(myClock, senderClock)', sender_clock)
+            self.increase_logical_clock('received message, max(myClock, senderClock) + 1', sender_clock)
             return payload
         except json.JSONDecodeError:
             self.log('c', f"Failed to decode JSON: {raw_data}")
