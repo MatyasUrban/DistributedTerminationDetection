@@ -488,7 +488,7 @@ class Node:
             for key in self.log_categories.keys():
                 self.log_categories[key] = False if sign == '-' else True
                 print(f"Enabled printing for category '{CAT_LABELS[key]}'.")
-        if cat in self.log_categories:
+        elif cat in self.log_categories:
             if sign == '+':
                 self.log_categories[cat] = True
                 print(f"Enabled printing for category '{CAT_LABELS[cat]}'.")
