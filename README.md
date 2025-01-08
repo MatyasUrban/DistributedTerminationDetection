@@ -76,15 +76,7 @@ Our node program addresses these challenges by providing:
 - **quit**  
   Immediately stops the node process (shutting down sockets, threads, etc.).
 
-### Additional Logging Controls
-
-- You can toggle printing for each log category with commands like:
-  - `+h` to enable printing of **HEARTBEAT** logs.
-  - `-t` to disable printing of **TOPOLOGY** logs.
-  - `.w` to enable only the **WORK TASK** category while disabling all others.
-
 ---
-
 
 ## Working with the CLI and Logging
 
