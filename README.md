@@ -142,6 +142,123 @@ The node starts, remains offline, and waits for CLI commands.
 
 ---
 
+## Working with the CLI and Logging
+
+One of the most distinctive features of this distributed node program is its **console-based CLI** coupled with an **adjustable logging system**. By default, *every log message* is written to `node.log` (in the same directory), but **what appears in the console** depends on how you configure log categories.
+
+### Why Separate Console Logs from the Log File?
+
+- **Log File** (`node.log`): Captures **all** details for diagnostics, debugging, and permanent records.  
+- **Console Output**: Shows **only** the categories you enable (plus any *status* reports). This prevents the console from becoming overly cluttered when a node processes many messages or tasks.
+
+### Example of Console Output
+
+Here’s a sample of how verbose the console can get if **all** categories are enabled:
+
+```
+INTERNAL	N0	C49	Received CLI input: count 20
+LOGICAL CLOCK	N0	C50	Logical Clock increased 49->50. Reason: handling count task [1..20]
+WORK TASK	N0	C50	Taking local chunk [start=1, end=10] for this node.
+LOGICAL CLOCK	N0	C51	Logical Clock increased 50->51. Reason: enqueuing new tak (1..10)
+WORK TASK	N0	C51	Enqueued count task: 0-51-(1..10) (range 1..10).
+WORK TASK	N0	C51	Delegating remainder [11..20] to successor Node 1
+LOGICAL CLOCK	N0	C52	Logical Clock increased 51->52. Reason: processing task 0-51-(1..10)
+WORK TASK	N0	C52	Executing count task 0-51-(1..10) for range 1..10
+WORK TASK	N0	C53	Counting: 1/10
+LOGICAL CLOCK	N0	C53	Logical Clock increased 52->53. Reason: creating a new message
+MESSAGING	N0	C53	Sent message to Node 1: {"sender_id": 0, "sender_clock": 53, "message_id": "0-53", "message_type": "DELEGATE_COUNT", "message_content": "11,20", "replying_to": null}
+LOGICAL CLOCK	N0	C56	Logical Clock increased 53->56. Reason: received message, max(myClock, senderClock)
+MESSAGING	N0	C56	Received message from Node 2: {'sender_id': 2, 'sender_clock': 55, 'message_id': '2-55', 'message_type': 'HEARTBEAT', 'message_content': 'ping', 'replying_to': None}
+HEARTBEAT	N0	C56	Heartbeat received from predecessor Node 2.
+WORK TASK	N0	C56	Counting: 2/10
+WORK TASK	N0	C56	Counting: 3/10
+```
+
+While it’s great to have all these details **logged**, having every category displayed on-screen can make the console quite busy. That’s where *log category toggles* come in.
+
+---
+
+### Log Categories
+
+Internally, every log message is assigned a **category** (`cat`). The following table shows the available categories:
+
+| Category Key | Console Label        | Typical Purpose                     |
+|--------------|----------------------|-------------------------------------|
+| **h**        | HEARTBEAT           | Heartbeat messages, ring updates, etc. |
+| **m**        | MISRA               | Misra marker-based termination detection info. |
+| **t**        | TOPOLOGY            | Topology changes (predecessor/successor updates). |
+| **n**        | NETWORKING          | Socket initialization, connection acceptance, shutting down. |
+| **w**        | WORK TASK           | Enqueuing tasks, task splitting, counting progress. |
+| **i**        | INTERNAL            | User input commands, debug info, prompts. |
+| **c**        | MESSAGING           | JSON messages sent or received between nodes. |
+| **l**        | LOGICAL CLOCK       | Any increments to the Lamport clock. |
+| **s**        | STATUS              | *Always printed* for `status` requests. |
+
+#### Default Behavior
+- **All categories** (`h, m, t, n, w, i, c, l`) are enabled for console output by default.
+- **Every** log message is recorded in `node.log`, regardless of these toggles.
+
+#### Toggling Categories
+
+Inside the CLI, you can enable or disable category printing on-the-fly:
+
+- **`+<cat>`**: Enable console printing for a category (e.g., `+w` → show **WORK TASK** logs).  
+- **`-<cat>`**: Disable console printing for a category (e.g., `-w` → stop showing **WORK TASK** logs).  
+- **`.`<cat>**: Enable **only** that category and disable all others (e.g., `.w` → only show **WORK TASK** logs).  
+
+Additionally:
+
+- **`+a`**: Enable **all** categories.
+- **`-a`**: Disable **all** categories.
+
+> **Note**: The **`s`** category (STATUS) is *always printed* if you run the `status` command, even if you toggle it off with `-s`. This ensures you can always see the status output.
+
+---
+
+### Examples of Category Toggle Commands
+
+Below are some typical usage scenarios:
+
+1. **Focus on Task Execution** `.w`
+
+This disables all categories except **WORK TASK**, so the console only shows messages about tasks being enqueued, executed, split, etc.
+
+2. **Add Termination Detection Logs**  `+m`
+
+Now that `.w` restricted output to only **WORK TASK**, `+m` re-enables **MISRA** logs as well. So the console shows tasks + marker-based logs.
+
+3. **Hide Heartbeat Noise**  `-h`
+
+Suppose you were seeing many repeated **HEARTBEAT** lines. Disabling them lets you focus on other categories (still logs to `node.log`).
+
+4. **Disable Everything**  `-a`
+
+This stops *all categories* from printing in the console. You’ll still see `status` outputs, but general logs won’t appear on-screen.
+
+---
+
+### Summary of Commands
+
+| Command              | Description                                                                                                  |
+|----------------------|--------------------------------------------------------------------------------------------------------------|
+| **`+<cat>`**         | Enable console printing for a category (e.g., `+w` or `+m`).                                                |
+| **`-<cat>`**         | Disable console printing for a category (e.g., `-w`, `-m`).                                                |
+| **`.`<cat>`**        | *Only* show `<cat>` (disables all other categories), e.g. `.m`.                                             |
+| **`+a`** / **`-a`**  | Enable/disable **all** categories.                                                                          |
+| **`+s` / `-s`**      | Not relevant for status printing; *status* messages are always printed if you run `status`.                 |
+
+---
+
+## Putting It All Together
+
+- **Log File**: Captures **every** log event. Always consult `node.log` if you need the full story.
+- **Console**: Displays only the categories you want to see.  
+- **Node CLI**: Accepts commands for toggling categories, so you can dynamically reduce noise or add detail.
+
+Use these tools to strike the right balance between **visibility** and **noise** in your console output.
+
+---
+
 ## Technical Considerations
 
 1. **Python Features**:
@@ -183,21 +300,3 @@ This distributed node program forms a robust demonstration of how processes can 
 
 Its console-based CLI allows you to interact with individual nodes, controlling how they delegate tasks, verify ring consistency, and detect termination. Whether used as a teaching tool, demonstration, or foundation for more advanced distributed algorithms, this program highlights key principles of distributed systems in a straightforward, ring-based architecture.
 
-```commandline
-INTERNAL	N0	C49	Received CLI input: count 20
-LOGICAL CLOCK	N0	C50	Logical Clock increased 49->50. Reason: handling count task [1..20]
-WORK TASK	N0	C50	Taking local chunk [start=1, end=10] for this node.
-LOGICAL CLOCK	N0	C51	Logical Clock increased 50->51. Reason: enqueuing new tak (1..10)
-WORK TASK	N0	C51	Enqueued count task: 0-51-(1..10) (range 1..10).
-WORK TASK	N0	C51	Delegating remainder [11..20] to successor Node 1
-LOGICAL CLOCK	N0	C52	Logical Clock increased 51->52. Reason: processing task 0-51-(1..10)
-WORK TASK	N0	C52	Executing count task 0-51-(1..10) for range 1..10
-WORK TASK	N0	C53	Counting: 1/10
-LOGICAL CLOCK	N0	C53	Logical Clock increased 52->53. Reason: creating a new message
-MESSAGING	N0	C53	Sent message to Node 1: {"sender_id": 0, "sender_clock": 53, "message_id": "0-53", "message_type": "DELEGATE_COUNT", "message_content": "11,20", "replying_to": null}
-LOGICAL CLOCK	N0	C56	Logical Clock increased 53->56. Reason: received message, max(myClock, senderClock)
-MESSAGING	N0	C56	Received message from Node 2: {'sender_id': 2, 'sender_clock': 55, 'message_id': '2-55', 'message_type': 'HEARTBEAT', 'message_content': 'ping', 'replying_to': None}
-HEARTBEAT	N0	C56	Heartbeat received from predecessor Node 2.
-WORK TASK	N0	C56	Counting: 2/10
-WORK TASK	N0	C56	Counting: 3/10
-```
