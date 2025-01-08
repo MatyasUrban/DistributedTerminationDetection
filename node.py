@@ -46,7 +46,8 @@ CAT_LABELS = {
     'w': 'WORK TASK',
     'i': 'INTERNAL',
     'c': 'MESSAGING',
-    'l': 'LOGICAL CLOCK'
+    'l': 'LOGICAL CLOCK',
+    's': 'STATUS',
 }
 
 class Node:
@@ -139,7 +140,7 @@ class Node:
                 "clock": getattr(self, "logical_clock", "N/A")
             }
         )
-        if self.log_categories and self.log_categories.get(cat, False):
+        if self.log_categories and self.log_categories.get(cat, True):
             console_line = f"{cat_label}\tN{self.id}\tC{self.logical_clock}\t{message}"
             print(console_line)
     def increase_logical_clock(self, reason, sender_clock=0):
