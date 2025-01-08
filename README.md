@@ -109,20 +109,20 @@ In distributed systems, determining when the entire network has completed its ta
 #### Handling Edge Cases
 
 - **Single Node Ring**:
-- If the ring consists of a single node, it handles the marker entirely on its own.
-- It increments the marker count and immediately detects termination if idle.
+  - If the ring consists of a single node, it handles the marker entirely on its own.
+  - It increments the marker count and immediately detects termination if idle.
 
 - **Dynamic Ring Changes**:
-- When nodes join or leave the ring, the topology is updated, and the termination detection adjusts accordingly.
+  - When nodes join or leave the ring, the topology is updated, and the termination detection adjusts accordingly.
 
 #### Maintaining Consistency
 
 - **Process State Synchronization**:
-- Nodes ensure that their process colors accurately reflect their current activity.
-- The use of flags (`self.misra_marker_present`) helps manage marker release even if tasks are dynamically added or removed.
+  - Nodes ensure that their process colors accurately reflect their current activity.
+  - The use of flags (`self.misra_marker_present`) helps manage marker release even if tasks are dynamically added or removed.
 
 - **Sequential Marker Passing**:
-- Markers pass in a single direction (e.g., clockwise) around the ring to maintain orderly termination detection.
+  - Markers pass in a single direction (e.g., clockwise) around the ring to maintain orderly termination detection.
 
 ---
 
