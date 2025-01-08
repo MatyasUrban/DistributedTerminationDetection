@@ -30,24 +30,102 @@ Our node program addresses these challenges by providing:
 
 ---
 
-## How to Start It Up
+## Startup Guide
 
-1. **Ensure IP Configuration**: 
-   - Each node is associated with a fixed IP from the `ID_IP_MAP`. 
-   - Update the `ID_IP_MAP` if necessary to match your local network settings. 
-   - By default, the ring uses addresses `192.168.64.201` through `192.168.64.205`.
+This section walks you through setting up, configuring, and starting the distributed node program in a Linux environment. Follow these steps carefully to ensure successful deployment and testing of the program.
 
-2. **Run the Node**:
-   - Launch the node with `python3 node.py`.
-   - The program will determine your local IP address and match it to one of the IPs in `ID_IP_MAP`.
-   - On successful matching, the node starts up in *offline* mode (i.e., it is not yet part of the ring).
+---
 
-3. **CLI Interaction**:
-   - Upon starting, the node presents a command prompt.
-   - Type `join` to make the node *online* and probe potential successors in the ring.
-   - Use `status` to see the node’s current state (topology info, logical clock, tasks, etc.).
-   - Type `leave` to gracefully exit the ring.
-   - Type `quit` (or press Ctrl+C) to fully shut down the node program.
+### Prerequisites
+
+1. **Decide on the Number of Nodes**
+   - Determine the number of devices (up to 5) that will participate in the distributed ring.
+
+2. **Prepare Linux Machines**
+   - Use Linux-based machines or virtual machines (e.g., Ubuntu or Debian). If you're using virtual machines, ensure each VM is properly networked.
+
+3. **Assign Static IPv4 Addresses**
+   - Assign static IP addresses to each device. The program uses the following default IP mappings:
+
+     ```
+     ID_IP_MAP = {
+         0: "192.168.64.201",
+         1: "192.168.64.202",
+         2: "192.168.64.203",
+         3: "192.168.64.204",
+         4: "192.168.64.205",
+     }
+     ```
+
+   - Ensure that:
+     - Each device has one of these IPs assigned to its **enp0s1** interface.
+     - All devices can **ping** each other successfully. This confirms network connectivity.
+
+     > **Note**: If you wish to use a different network interface or IP addresses, modify the program's `ID_IP_MAP` and **`get_local_ip`** function accordingly.
+
+---
+
+### Package Installation
+
+1. **Install Required Dependencies**
+   Run the following commands to install the necessary software:
+```
+sudo apt-get update
+sudo apt-get install git python3 python3-pip
+```
+
+2. **Clone the Repository**
+   Download the program from GitHub:
+
+`git clone https://github.com/MatyasUrban/DistributedTerminationDetection.git`
+
+3. **Navigate to the Program Directory**
+   Move into the cloned directory:
+
+`cd DistributedTerminationDetection`
+
+---
+
+## Running the Program
+
+1. **Start the Node**
+   Run the startup script to pull the latest code and start the node:
+
+`./start_node.sh`
+
+   What happens:
+   - The script automatically **git pulls** and **rebases** the latest version of the program.
+   - It runs the program with **python3 node.py**.
+
+2. **Program Execution**
+   - The node will attempt to detect its local IP using the **`enp0s1`** interface and match it to an ID in the `ID_IP_MAP`.
+   - Upon success, the node initializes and starts in **offline mode**, waiting for user commands.
+
+---
+
+### Key Considerations
+
+1. **Network Configuration**
+   - Ensure that all devices in the ring are on the same network.
+   - Each device must have its **enp0s1** interface configured with one of the predefined IPs.
+   - Use **ping** to verify connectivity between devices.
+
+2. **Modifying Defaults**
+   - To use a different interface, update the **`get_local_ip`** function:
+     ```
+     if "<desired-interface>" in line:
+     ```
+   - To use a different set of IP addresses, update the `ID_IP_MAP` dictionary.
+
+3. **Linux Compatibility**
+   - The scripts and instructions are tailored for Linux environments. Ensure you have the required permissions (e.g., `sudo`) for installations and network configurations.
+
+---
+
+### Next Steps
+
+- After startup, refer to the **Working with the CLI and Logging** chapter for information on interacting with the program.
+- Use commands like **join**, **status**, and **count** to explore the program's features.
 
 ---
 
