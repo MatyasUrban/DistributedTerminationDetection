@@ -12,21 +12,117 @@ This program implements a *distributed node* within a ring-based topology. Each 
 
 ---
 
-## What Does This Program Solve?
+## Distributed Algorithm and Termination Detection
 
-In distributed environments, it is often necessary for processes to:
+This chapter explores the implementation of our **distributed algorithm** and the **Misra marker-based termination detection** within the distributed node program. Understanding these components is essential for comprehending how the system efficiently distributes tasks and accurately detects when all nodes have completed their work.
 
-1. **Coordinate** with each other over a network (here, a ring) without a centralized manager.
-2. **Detect** when certain processes fail or leave.
-3. **Distribute** workloads (like counting tasks) and rebalance tasks when nodes arrive or depart.
-4. **Determine** a *global termination condition* (i.e., when all nodes have finished their tasks).
+### Counting Task Distribution
 
-Our node program addresses these challenges by providing:
+#### Overview
 
-- A **fault-tolerant** (ring) topology where each node tracks a single predecessor and successor.
-- **Automated** detection of node failures via heartbeats.
-- **Flexible** workload distribution, allowing tasks to be split and delegated.
-- A **marker-based** termination detection algorithm to confirm whether all nodes are collectively idle.
+The `count <int>` command initiates a counting task where the node counts every second from 1 up to the specified number. To manage workloads effectively across the ring of nodes, the program employs a strategy to split large counting tasks and delegate portions of these tasks to successor nodes. This ensures balanced task distribution and prevents any single node from becoming a bottleneck.
+
+#### How It Works
+
+1. **Task Reception**:
+   - When a node receives the `count <int>` command, it interprets this as a request to count from 1 to `<int>`.
+   - The node evaluates whether the task range exceeds 10. If it does, the task is considered *big*.
+
+2. **Local Task Handling**:
+   - For *big* tasks, the node **splits** the range into smaller chunks of up to 10 units each.
+   - The node **enqueues** the first chunk (e.g., 1-10) into its **local work queue**.
+   - A dedicated **work processor thread** continuously monitors and processes tasks from this queue, executing the counting operation.
+
+3. **Delegation to Successor**:
+   - After handling the first chunk locally, the node **delegates** the remaining range (e.g., 11-20) to its **successor** in the ring.
+   - This delegation involves sending a **`DELEGATE_COUNT`** message containing the remaining range to the successor node.
+   - The successor node, upon receiving the message, repeats the process: handling a local chunk and delegating the rest if necessary.
+
+4. **Single Node Scenario**:
+   - If the ring consists of **only one node**, it cannot delegate tasks. Therefore, the node **splits** the range into multiple smaller chunks (each up to 10) and **enqueues** them into its own work queue for sequential processing.
+
+5. **Task Completion and Work Request**:
+   - Once a node completes all tasks in its local queue, it **requests more work** from its **predecessor**.
+   - The predecessor node, if it has tasks in its queue, responds by delegating them to the requester.
+   - This ensures continuous task distribution and processing across the ring.
+
+#### Flow of Tasks
+
+The task distribution flows **unidirectionally** around the ring, maintaining a smooth and orderly progression of tasks. Here's a simplified illustration:
+
+1. User commands count 100 at Node 0
+2. [Node 0] Enqueues 1-10 locally and delegates 11-100 to [Node 1]
+3. [Node 1] Enqueues 11-20 locally and delegates 21-100 to [Node 2]
+4. ... 
+5. Transitively the tasks would get back to Node 0
+
+Each node ensures that it handles its portion of the task efficiently while leveraging the ring structure to distribute workload seamlessly.
+
+### Misra Marker-Based Termination Detection
+
+#### Overview
+
+In distributed systems, determining when the entire network has completed its tasks is non-trivial. To address this, our program implements **Misra's marker-based termination detection algorithm**, which allows nodes to detect global termination without centralized coordination.
+
+#### Key Concepts
+
+- **Process Color**:
+  - Each node maintains a **process color**, which can be either **black** or **white**.
+  - **Black** indicates that the node is active (processing tasks), while **white** indicates that the node is idle.
+
+- **Marker Presence**:
+  - Nodes track whether a **marker** is present in the system.
+  - A marker is used to signify the initiation and tracking of termination detection.
+
+#### How It Works
+
+1. **Process Coloring**:
+   - According to Misra's rule, **any message arrival at a node turns the node's color to black**.
+   - Similarly, when a node receives a task and starts processing it, it paints itself black to indicate activity.
+
+2. **Initiating Termination Detection**:
+   - A **marker command** can be issued to start the termination detection process at any node.
+   - Upon receiving the marker command, the node:
+     - **Sends a marker message** to its successor.
+     - **Paints itself white** if it is idle or prepares to paint itself white once it becomes idle.
+   
+3. **Handling Markers**:
+   - When a node receives a **marker message**:
+     - If the node is **idle**:
+       - It increments the **marker count** and **forwards** the marker to its successor.
+       - It paints itself **white**.
+     - If the node is **busy**:
+       - It sets a flag (`self.misra_marker_present = True`) indicating that the marker should be released once it becomes idle.
+   
+4. **Releasing Markers**:
+   - Once a busy node completes its current tasks and finds its work queue empty, it:
+     - **Releases the marker** by sending it to its successor with an incremented count.
+     - **Paints itself white**.
+   
+5. **Detecting Global Termination**:
+   - The marker carries a **count** that represents how many nodes have been painted white in a row.
+   - If a node detects that the marker has traversed **N white processes in a row**, where **N** is the total number of nodes in the ring, it **logs a global termination** message.
+   - This condition indicates that all nodes are idle, and no further tasks are being processed or delegated.
+   
+`MARKER algorithm: Detected global termination! Count of processes in the ring (5) == count of contiguous white processes (5)`
+   
+#### Handling Edge Cases
+
+- **Single Node Ring**:
+- If the ring consists of a single node, it handles the marker entirely on its own.
+- It increments the marker count and immediately detects termination if idle.
+
+- **Dynamic Ring Changes**:
+- When nodes join or leave the ring, the topology is updated, and the termination detection adjusts accordingly.
+
+#### Maintaining Consistency
+
+- **Process State Synchronization**:
+- Nodes ensure that their process colors accurately reflect their current activity.
+- The use of flags (`self.misra_marker_present`) helps manage marker release even if tasks are dynamically added or removed.
+
+- **Sequential Marker Passing**:
+- Markers pass in a single direction (e.g., clockwise) around the ring to maintain orderly termination detection.
 
 ---
 
