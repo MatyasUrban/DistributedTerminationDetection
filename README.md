@@ -182,3 +182,22 @@ This distributed node program forms a robust demonstration of how processes can 
 - **Marker-Based Termination** to identify when all nodes become idle.
 
 Its console-based CLI allows you to interact with individual nodes, controlling how they delegate tasks, verify ring consistency, and detect termination. Whether used as a teaching tool, demonstration, or foundation for more advanced distributed algorithms, this program highlights key principles of distributed systems in a straightforward, ring-based architecture.
+
+```commandline
+INTERNAL	N0	C49	Received CLI input: count 20
+LOGICAL CLOCK	N0	C50	Logical Clock increased 49->50. Reason: handling count task [1..20]
+WORK TASK	N0	C50	Taking local chunk [start=1, end=10] for this node.
+LOGICAL CLOCK	N0	C51	Logical Clock increased 50->51. Reason: enqueuing new tak (1..10)
+WORK TASK	N0	C51	Enqueued count task: 0-51-(1..10) (range 1..10).
+WORK TASK	N0	C51	Delegating remainder [11..20] to successor Node 1
+LOGICAL CLOCK	N0	C52	Logical Clock increased 51->52. Reason: processing task 0-51-(1..10)
+WORK TASK	N0	C52	Executing count task 0-51-(1..10) for range 1..10
+WORK TASK	N0	C53	Counting: 1/10
+LOGICAL CLOCK	N0	C53	Logical Clock increased 52->53. Reason: creating a new message
+MESSAGING	N0	C53	Sent message to Node 1: {"sender_id": 0, "sender_clock": 53, "message_id": "0-53", "message_type": "DELEGATE_COUNT", "message_content": "11,20", "replying_to": null}
+LOGICAL CLOCK	N0	C56	Logical Clock increased 53->56. Reason: received message, max(myClock, senderClock)
+MESSAGING	N0	C56	Received message from Node 2: {'sender_id': 2, 'sender_clock': 55, 'message_id': '2-55', 'message_type': 'HEARTBEAT', 'message_content': 'ping', 'replying_to': None}
+HEARTBEAT	N0	C56	Heartbeat received from predecessor Node 2.
+WORK TASK	N0	C56	Counting: 2/10
+WORK TASK	N0	C56	Counting: 3/10
+```
