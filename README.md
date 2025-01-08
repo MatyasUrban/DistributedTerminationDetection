@@ -14,7 +14,7 @@ This program implements a *distributed node* within a ring-based topology. Each 
 
 ## Distributed Algorithm and Termination Detection
 
-This chapter explores the implementation of our **distributed algorithm** and the **Misra marker-based termination detection** within the distributed node program. Understanding these components is essential for comprehending how the system efficiently distributes tasks and accurately detects when all nodes have completed their work.
+This section explores the implementation of our **distributed algorithm** and the **Misra marker-based termination detection** within our distributed node program. Understanding these components is essential for comprehending how the system efficiently distributes tasks and accurately detects when all nodes have completed their work.
 
 ### Counting Task Distribution
 
