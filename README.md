@@ -437,6 +437,132 @@ The node starts, remains offline, and waits for CLI commands.
 
 ---
 
+## Node's Internal State
+
+Each node in the distributed system maintains a comprehensive internal state to manage its operations effectively. This state encompasses configurations, networking details, task management, messaging, and termination detection mechanisms. Understanding these attributes is essential for grasping how each node interacts within the ring topology and ensures seamless distributed processing.
+
+### General Attributes
+
+- **Logging Configuration**: Determines which categories of logs are printed to the console, allowing users to control the verbosity of the output without affecting the detailed logs stored in `node.log`.
+- **Identification and Networking**: Each node has a unique identifier and IP address, facilitating communication within the ring.
+- **Operational Status**: Tracks whether the node is active (`online`) and manages any artificial delays in message transmission.
+- **Concurrency Management**: Utilizes locks and multiple threads to handle simultaneous operations safely.
+- **Topology Management**: Maintains information about the ring's current structure, including predecessor and successor nodes.
+- **Task Management**: Manages a queue of tasks to be processed, ensuring efficient distribution and execution of workloads.
+- **Messaging System**: Handles the sending and receiving of messages between nodes, tracking both sent messages and received replies.
+- **Heartbeat Mechanism**: Monitors the health of predecessor nodes to detect failures or disconnections.
+- **Termination Detection**: Implements Misra's marker-based algorithm to determine when all nodes have completed their tasks, signaling global termination.
+
+### Detailed Attributes
+
+1. **`log_categories`**
+   - **Type**: `Dict[str, bool]`
+   - **Description**: Controls which log categories are printed to the console. Each key corresponds to a specific log category (e.g., 'h' for HEARTBEAT), and the boolean value determines whether logs of that category are displayed.
+
+2. **`id`**
+   - **Type**: `int`
+   - **Description**: The unique identifier for the node, determined based on its IP address from the predefined `ID_IP_MAP`.
+
+3. **`logical_clock`**
+   - **Type**: `int`
+   - **Description**: Implements Lamport's logical clock to maintain a partial ordering of events across the distributed system. It increments based on internal events and message exchanges.
+
+4. **`ip`**
+   - **Type**: `str`
+   - **Description**: The local IPv4 address of the node, obtained by inspecting the `enp0s1` network interface. This address is crucial for establishing communication with other nodes.
+
+5. **`port`**
+   - **Type**: `int`
+   - **Default**: `5000`
+   - **Description**: The port number on which the node listens for incoming TCP connections from other nodes.
+
+6. **`online`**
+   - **Type**: `bool`
+   - **Default**: `False`
+   - **Description**: Indicates whether the node is currently active and part of the ring topology. An online node participates in task distribution and heartbeat exchanges.
+
+7. **`delay`**
+   - **Type**: `int`
+   - **Default**: `0`
+   - **Description**: An artificial delay (in seconds) added to outgoing messages to simulate network latency or control message flow.
+
+8. **`lock`**
+   - **Type**: `threading.Lock`
+   - **Description**: A mutex lock ensuring thread-safe access to shared resources, such as the logical clock and task queues.
+
+9. **`server_socket`**
+   - **Type**: `socket.socket`
+   - **Description**: The server socket bound to the node's IP and port, responsible for accepting incoming connections from other nodes.
+
+10. **`outgoing_queue`**
+    - **Type**: `queue.Queue`
+    - **Description**: A thread-safe queue holding outgoing messages that need to be sent to other nodes. Messages are processed asynchronously by the outgoing connections thread.
+
+11. **`outgoing_connections_thread`**
+    - **Type**: `threading.Thread`
+    - **Description**: A dedicated thread that processes messages from the `outgoing_queue` and handles the sending of these messages to target nodes.
+
+12. **`incoming_connections_thread`**
+    - **Type**: `threading.Thread`
+    - **Description**: A dedicated thread that continuously listens for and accepts incoming connections on the `server_socket`. Each incoming connection is handled in a separate daemon thread.
+
+13. **`topology`**
+    - **Type**: `List[int]`
+    - **Description**: A list maintaining the current ring topology by storing the IDs of all active nodes in ascending order.
+
+14. **`successor_id`**
+    - **Type**: `Optional[int]`
+    - **Description**: The ID of the node's immediate successor in the ring. Used for sending tasks and heartbeats.
+
+15. **`predecessor_id`**
+    - **Type**: `Optional[int]`
+    - **Description**: The ID of the node's immediate predecessor in the ring. Used for receiving delegated tasks and monitoring heartbeats.
+
+16. **`work_queue`**
+    - **Type**: `queue.Queue`
+    - **Description**: A thread-safe queue holding tasks that the node needs to process. Tasks are typically counting operations that the node executes sequentially.
+
+17. **`work_thread`**
+    - **Type**: `threading.Thread`
+    - **Description**: A dedicated thread that continuously monitors and processes tasks from the `work_queue`. It handles task execution and delegates remaining work as necessary.
+
+18. **`task_in_progress`**
+    - **Type**: `Optional[Tuple[str, str]]`
+    - **Description**: Stores information about the current task being processed, including the task ID and type. This helps in tracking active operations and managing task completion.
+
+19. **`sent_messages`**
+    - **Type**: `Dict[str, Message]`
+    - **Description**: A dictionary tracking all messages sent by the node, keyed by their unique message IDs. This is useful for correlating sent messages with received replies.
+
+20. **`received_replies`**
+    - **Type**: `Dict[str, Message]`
+    - **Description**: A dictionary storing replies received for messages that the node has sent. This facilitates handling acknowledgments and responses from other nodes.
+
+21. **`predecessor_last_heartbeat_time`**
+    - **Type**: `Optional[float]`
+    - **Description**: Timestamp of the last heartbeat received from the predecessor node. Used to detect failures or unresponsive nodes.
+
+22. **`my_heartbeat_thread`**
+    - **Type**: `threading.Thread`
+    - **Description**: A dedicated thread that periodically sends heartbeat messages to the successor node to signal the node's active status.
+
+23. **`monitor_predecessor_heartbeat_thread`**
+    - **Type**: `threading.Thread`
+    - **Description**: A dedicated thread that monitors the `predecessor_last_heartbeat_time`. If heartbeats from the predecessor are not received within the `HEARTBEAT_TIMEOUT`, the node assumes the predecessor has failed and updates the topology accordingly.
+
+24. **`misra_process_color`**
+    - **Type**: `str`
+    - **Default**: `'black'`
+    - **Description**: Indicates the node's current color in the termination detection algorithm. `'black'` signifies that the node is active or has processed a marker, while `'white'` indicates idleness.
+
+25. **`misra_marker_present`**
+    - **Type**: `bool`
+    - **Default**: `False`
+    - **Description**: A flag indicating whether a termination marker is currently present and awaiting release. If the node is busy when a marker arrives, this flag ensures the marker is released once the node becomes idle.
+
+
+---
+
 ## Summary
 
 This distributed node program forms a robust demonstration of how processes can coordinate in a ring topology, exchanging tasks and detecting failures. By providing commands for joining, leaving, counting tasks, and monitoring system-wide termination, it showcases essential concepts of distributed systems:
