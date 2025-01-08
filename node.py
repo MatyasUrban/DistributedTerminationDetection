@@ -143,6 +143,7 @@ class Node:
         if self.log_categories and self.log_categories.get(cat, True):
             console_line = f"{cat_label}\tN{self.id}\tC{self.logical_clock}\t{message}"
             print(console_line)
+
     def increase_logical_clock(self, reason, sender_clock=0):
         with self.lock:
             old_value = self.logical_clock
@@ -544,7 +545,7 @@ class Node:
                 "----------------------"
             )
 
-            self.log('i', status_info)
+            self.log('s', status_info)
 
     # OUTGOING MESSAGING
 
