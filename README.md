@@ -34,8 +34,6 @@ Our node program addresses these challenges by providing:
 
 This section walks you through setting up, configuring, and starting the distributed node program in a Linux environment. Follow these steps carefully to ensure successful deployment and testing of the program.
 
----
-
 ### Prerequisites
 
 1. **Decide on the Number of Nodes**
@@ -63,8 +61,6 @@ This section walks you through setting up, configuring, and starting the distrib
 
      > **Note**: If you wish to use a different network interface or IP addresses, modify the program's `ID_IP_MAP` and **`get_local_ip`** function accordingly.
 
----
-
 ### Package Installation
 
 1. **Install Required Dependencies**
@@ -84,9 +80,8 @@ sudo apt-get install git python3 python3-pip
 
 `cd DistributedTerminationDetection`
 
----
 
-## Running the Program
+### Running the Program
 
 1. **Start the Node**
    Run the startup script to pull the latest code and start the node:
@@ -100,8 +95,6 @@ sudo apt-get install git python3 python3-pip
 2. **Program Execution**
    - The node will attempt to detect its local IP using the **`enp0s1`** interface and match it to an ID in the `ID_IP_MAP`.
    - Upon success, the node initializes and starts in **offline mode**, waiting for user commands.
-
----
 
 ### Key Considerations
 
@@ -119,8 +112,6 @@ sudo apt-get install git python3 python3-pip
 
 3. **Linux Compatibility**
    - The scripts and instructions are tailored for Linux environments. Ensure you have the required permissions (e.g., `sudo`) for installations and network configurations.
-
----
 
 ### Next Steps
 
@@ -190,8 +181,6 @@ WORK TASK	N0	C56	Counting: 3/10
 
 While it’s great to have all these details **logged**, having every category displayed on-screen can make the console quite busy. That’s where *log category toggles* come in.
 
----
-
 ### Log Categories
 
 Internally, every log message is assigned a **category** (`cat`). The following table shows the available categories:
@@ -227,8 +216,6 @@ Additionally:
 
 > **Note**: The **`s`** category (STATUS) is *always printed* if you run the `status` command, even if you toggle it off with `-s`. This ensures you can always see the status output.
 
----
-
 ### Examples of Category Toggle Commands
 
 Below are some typical usage scenarios:
@@ -249,8 +236,6 @@ Suppose you were seeing many repeated **HEARTBEAT** lines. Disabling them lets y
 
 This stops *all categories* from printing in the console. You’ll still see `status` outputs, but general logs won’t appear on-screen.
 
----
-
 ### Summary of Commands
 
 | Command              | Description                                                                                                  |
@@ -259,8 +244,6 @@ This stops *all categories* from printing in the console. You’ll still see `st
 | **`-<cat>`**         | Disable console printing for a category (e.g., `-w`, `-m`).                                                |
 | **`.`<cat>`**        | *Only* show `<cat>` (disables all other categories), e.g. `.m`.                                             |
 | **`+a`** / **`-a`**  | Enable/disable **all** categories.                                                                          |
-
----
 
 ## Putting It All Together
 
