@@ -85,62 +85,6 @@ Our node program addresses these challenges by providing:
 
 ---
 
-## Threads
-
-Each node starts several threads to manage concurrency:
-
-1. **CLI Thread**  
-   - Responsible for reading user commands from the console and executing them.  
-   - Runs the `handle_cli` function until the user quits or the node shuts down.
-
-2. **Incoming Connections Thread**  
-   - Listens for new TCP connections from other nodes on the ring (i.e., when they send tasks, heartbeats, or other messages).
-
-3. **Outgoing Connections Thread**  
-   - Processes a queue of outgoing messages.  
-   - Each message is eventually delivered to the target node (successor, predecessor, or another node).
-
-4. **Work Processor Thread**  
-   - Handles local tasks (e.g., counting from 1 to N).  
-   - If tasks are large, it may delegate portions to its successor.
-
-5. **Heartbeat Thread**  
-   - Periodically sends heartbeat messages to the successor.  
-   - Updates the local logical clock each time a heartbeat is sent.
-
-6. **Predecessor Monitor Thread**  
-   - Monitors whether the predecessor has sent a heartbeat recently.  
-   - If not, the node assumes the predecessor is dead or has left, and updates the ring topology accordingly.
-
----
-
-## Example Workflow
-
-1. **Start Node** `python3 node.py`
-
-The node starts, remains offline, and waits for CLI commands.
-
-2. **Join the Ring** `join`
-- The node attempts to discover a successor using its IP-based ID.  
-- If another node is online, it receives a response and updates its topology.  
-- If no node responds, it becomes a single-node ring.
-
-3. **Create a Counting Task** `count 20`
-- The node enqueues a task to count up to 20.
-- If it has a successor, it may delegate part of this task to lighten its load.
-
-4. **Check Status** `status`
-- Prints out a multi-line status showing whether the node is busy, how many tasks are queued, its predecessor, successor, etc.
-
-5. **Test Termination** `misra`
-- Initiates the marker-based termination detection.
-- If every node in the ring is idle, the algorithm recognizes system-wide completion and reports that at one node.
-
-6. **Leave the Ring**  `leave`
-- The node gracefully notifies others, updates the ring so it’s removed, and goes offline.
-- It can later re-join if desired (by re-running `join`).
-
----
 
 ## Working with the CLI and Logging
 
@@ -245,7 +189,6 @@ This stops *all categories* from printing in the console. You’ll still see `st
 | **`-<cat>`**         | Disable console printing for a category (e.g., `-w`, `-m`).                                                |
 | **`.`<cat>`**        | *Only* show `<cat>` (disables all other categories), e.g. `.m`.                                             |
 | **`+a`** / **`-a`**  | Enable/disable **all** categories.                                                                          |
-| **`+s` / `-s`**      | Not relevant for status printing; *status* messages are always printed if you run `status`.                 |
 
 ---
 
@@ -256,6 +199,63 @@ This stops *all categories* from printing in the console. You’ll still see `st
 - **Node CLI**: Accepts commands for toggling categories, so you can dynamically reduce noise or add detail.
 
 Use these tools to strike the right balance between **visibility** and **noise** in your console output.
+
+---
+
+## Threads
+
+Each node starts several threads to manage concurrency:
+
+1. **CLI Thread**  
+   - Responsible for reading user commands from the console and executing them.  
+   - Runs the `handle_cli` function until the user quits or the node shuts down.
+
+2. **Incoming Connections Thread**  
+   - Listens for new TCP connections from other nodes on the ring (i.e., when they send tasks, heartbeats, or other messages).
+
+3. **Outgoing Connections Thread**  
+   - Processes a queue of outgoing messages.  
+   - Each message is eventually delivered to the target node (successor, predecessor, or another node).
+
+4. **Work Processor Thread**  
+   - Handles local tasks (e.g., counting from 1 to N).  
+   - If tasks are large, it may delegate portions to its successor.
+
+5. **Heartbeat Thread**  
+   - Periodically sends heartbeat messages to the successor.  
+   - Updates the local logical clock each time a heartbeat is sent.
+
+6. **Predecessor Monitor Thread**  
+   - Monitors whether the predecessor has sent a heartbeat recently.  
+   - If not, the node assumes the predecessor is dead or has left, and updates the ring topology accordingly.
+
+---
+
+## Example Workflow
+
+1. **Start Node** `python3 node.py`
+
+The node starts, remains offline, and waits for CLI commands.
+
+2. **Join the Ring** `join`
+- The node attempts to discover a successor using its IP-based ID.  
+- If another node is online, it receives a response and updates its topology.  
+- If no node responds, it becomes a single-node ring.
+
+3. **Create a Counting Task** `count 20`
+- The node enqueues a task to count up to 20.
+- If it has a successor, it may delegate part of this task to lighten its load.
+
+4. **Check Status** `status`
+- Prints out a multi-line status showing whether the node is busy, how many tasks are queued, its predecessor, successor, etc.
+
+5. **Test Termination** `misra`
+- Initiates the marker-based termination detection.
+- If every node in the ring is idle, the algorithm recognizes system-wide completion and reports that at one node.
+
+6. **Leave the Ring**  `leave`
+- The node gracefully notifies others, updates the ring so it’s removed, and goes offline.
+- It can later re-join if desired (by re-running `join`).
 
 ---
 
