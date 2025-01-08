@@ -476,28 +476,28 @@ class Node:
                 self.log('i', "CLI input ended unexpectedly (EOFError).")
                 sys.exit(0)
             except Exception as e:
-                self.log('i', f"Unhandled exception in CLI: {e}")
-                sys.exit(1)
+                self.log('i', f"Issue with command. Try again")
 
     def change_console_logging(self, line):
         sign = line[0]
         cat = line[1]
+        word = 'Enabled' if sign == '+' else 'Disabled'
         if cat == 'a':
             if sign not in ('+', '-'):
                 print(f"For turning all categories on/off please use '+a'/'-a'")
             for key in self.log_categories.keys():
                 self.log_categories[key] = False if sign == '-' else True
-                print(f"Enabled printing for category '{CAT_LABELS[key]}'.")
+                print(f"{word} printing for category '{CAT_LABELS[key]}'.")
         elif cat in self.log_categories:
             if sign == '+':
                 self.log_categories[cat] = True
-                print(f"Enabled printing for category '{CAT_LABELS[cat]}'.")
+                print(f"{word} printing for category '{CAT_LABELS[cat]}'.")
             elif sign == '-':
                 self.log_categories[cat] = False
-                print(f"Disabled printing for category '{CAT_LABELS[cat]}'.")
+                print(f"{word} printing for category '{CAT_LABELS[cat]}'.")
             elif sign == '.':
                 self.log_categories[cat] = True
-                print(f"Enabled printing for category '{CAT_LABELS[cat]}'.")
+                print(f"{word} printing for category '{CAT_LABELS[cat]}'.")
                 for key in self.log_categories.keys():
                     if key == cat:
                         continue
