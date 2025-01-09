@@ -563,6 +563,65 @@ Each node in the distributed system maintains a comprehensive internal state to 
 
 ---
 
+## Server and Flask Endpoints
+
+Each node in the ring runs a **Flask** server on **port 8080**, providing a set of RESTful API endpoints for external interaction and automation. These endpoints allow you to manage node operations programmatically, enabling actions such as joining the ring, initiating tasks, adjusting message delays, and monitoring node status.
+
+### Available Endpoints
+
+| **Endpoint**             | **HTTP Method** | **Description**                                                         |
+|--------------------------|-----------------|-------------------------------------------------------------------------|
+| `/join`                  | `POST`          | Brings the node online and attempts to join the ring topology.          |
+| `/leave`                 | `POST`          | Gracefully removes the node from the ring and sets it to offline mode.   |
+| `/count/<int:goal>`      | `POST`          | Enqueues a counting task that counts from 1 up to the specified `<goal>`.|
+| `/status`                | `GET`           | Logs and returns the current status of the node, including topology and tasks. |
+| `/delay/<int:seconds>`   | `POST`          | Sets an artificial delay (in seconds) for outgoing messages to simulate network latency. |
+| `/misra`                 | `POST`          | Initiates the Misra marker-based termination detection process.         |
+
+### Endpoint Details
+
+#### 1. **Join the Ring**
+
+- **URL:** `/join`
+- **Method:** `POST`
+- **Description:** Activates the node and attempts to integrate it into the existing ring topology. If other nodes are online, the node will update its successor and predecessor accordingly. If no other nodes are present, it becomes the sole member of the ring.
+
+#### 2. **Leave the Ring**
+
+- **URL:** `/leave`
+- **Method:** `POST`
+- **Description:** Removes the node from the ring gracefully, updating the ring's topology to exclude this node. The node transitions to an offline state and stops participating in task distribution and heartbeat exchanges.
+
+#### 3. **Enqueue a Counting Task**
+
+- **URL:** `/count/<int:goal>`
+- **Method:** `POST`
+- **Description:** Initiates a counting task where the node counts from 1 up to the specified `<goal>`. The task may be split and delegated to successor nodes if the range exceeds 10 to balance the workload across the ring.
+
+- **Parameters:**
+  - `<int:goal>`: The upper limit of the counting task.
+
+#### 4. **Check Node Status**
+
+- **URL:** `/status`
+- **Method:** `GET`
+- **Description:** Retrieves and logs the current status of the node, including its ID, IP address, online status, logical clock value, message delay, work state (busy or idle), current topology, predecessor and successor IDs, pending tasks, and Misra termination detection status.
+
+#### 5. **Set Message Delay**
+
+- **URL:** `/delay/<int:seconds>`
+- **Method:** `POST`
+- **Description:** Adjusts the artificial delay added to outgoing messages. This feature is useful for simulating network latency or controlling the flow rate of messages between nodes.
+
+- **Parameters:**
+  - `<int:seconds>`: The number of seconds to set as the delay for outgoing messages.
+
+#### 6. **Initiate Misra Termination Detection**
+
+- **URL:** `/misra`
+- **Method:** `POST`
+- **Description:** Starts the Misra marker-based termination detection process. This process determines whether all nodes in the ring have become idle, indicating that the system has completed all tasks and reached global termination.
+
 ## Summary
 
 This distributed node program forms a robust demonstration of how processes can coordinate in a ring topology, exchanging tasks and detecting failures. By providing commands for joining, leaving, counting tasks, and monitoring system-wide termination, it showcases essential concepts of distributed systems:
