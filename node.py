@@ -809,7 +809,7 @@ class Node:
                 self.log('i', f"Error handling /count/{goal}: {e}")
                 return jsonify({"error": "Failed to enqueue count task"}), 400
 
-        @self.app.route('/join', methods=['POST'])
+        @self.app.route('/join', methods=['GET'])
         def join_route():
             if self.online:
                 return jsonify({"error": "Node is already online"}), 400
@@ -820,7 +820,7 @@ class Node:
                 self.log('i', f"Error handling /join: {e}")
                 return jsonify({"error": "Failed to join the topology"}), 400
 
-        @self.app.route('/leave', methods=['POST'])
+        @self.app.route('/leave', methods=['GET'])
         def leave_route():
             if not self.online:
                 return jsonify({"error": "Node is already offline"}), 400
@@ -840,7 +840,7 @@ class Node:
                 self.log('i', f"Error handling /status: {e}")
                 return jsonify({"error": "Failed to retrieve status"}), 400
 
-        @self.app.route('/delay/<int:seconds>', methods=['POST'])
+        @self.app.route('/delay/<int:seconds>', methods=['GET'])
         def set_delay_route(seconds):
             try:
                 self.set_delay(seconds)
@@ -849,8 +849,10 @@ class Node:
                 self.log('i', f"Error handling /delay/{seconds}: {e}")
                 return jsonify({"error": "Failed to set delay"}), 400
 
-        @self.app.route('/misra', methods=['POST'])
+        @self.app.route('/misra', methods=['GET'])
         def misra_route():
+            if not self.online:
+                return jsonify({"error": "Node is already offline"}), 400
             try:
                 self.handle_misra(0)
                 return jsonify({"status": "Misra termination detection initiated"}), 200
