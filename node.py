@@ -151,6 +151,12 @@ class Node:
         self.monitor_predecessor_heartbeat_thread = threading.Thread(target=self._monitor_predecessor_heartbeat_loop, daemon=True)
         self.monitor_predecessor_heartbeat_thread.start()
 
+    def stop_heartbeat_checking_and_sending(self):
+        if self.my_heartbeat_thread and self.my_heartbeat_thread.is_alive():
+            self.my_heartbeat_thread.join(timeout=2)
+        if self.monitor_predecessor_heartbeat_thread and self.monitor_predecessor_heartbeat_thread.is_alive():
+            self.monitor_predecessor_heartbeat_thread.join(timeout=2)
+
     def _my_heartbeat_loop(self):
         self.log('h', "Heartbeat thread started.")
         while self.online:
@@ -285,11 +291,15 @@ class Node:
         self.online = False
         self.stop_networking()
         self.stop_work_processor()
+        self.stop_heartbeat_checking_and_sending()
+        self.predecessor_id = None
         self.successor_id = None
         self.topology = None
         self.predecessor_last_heartbeat_time = None
         self.my_heartbeat_thread = None
         self.monitor_predecessor_heartbeat_thread = None
+        self.misra_marker_present = False
+        self.misra_process_color = 'black'
         self.log('t', "Node has left the topology.")
 
     def stop_networking(self):
