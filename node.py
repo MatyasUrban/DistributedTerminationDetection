@@ -806,7 +806,6 @@ class Node:
                 self.handle_received_count_task(1, goal)
                 return jsonify({"status": "count task enqueued", "goal": goal}), 200
             except Exception as e:
-                self.log('i', f"Error handling /count/{goal}: {e}")
                 return jsonify({"error": "Failed to enqueue count task"}), 400
 
         @self.app.route('/join', methods=['GET'])
@@ -817,7 +816,6 @@ class Node:
                 self.join()
                 return jsonify({"status": "Node joined the topology"}), 200
             except Exception as e:
-                self.log('i', f"Error handling /join: {e}")
                 return jsonify({"error": "Failed to join the topology"}), 400
 
         @self.app.route('/leave', methods=['GET'])
@@ -828,7 +826,6 @@ class Node:
                 self.leave_command()
                 return jsonify({"status": "Node left the topology"}), 200
             except Exception as e:
-                self.log('i', f"Error handling /leave: {e}")
                 return jsonify({"error": "Failed to leave the topology"}), 400
 
         @self.app.route('/status', methods=['GET'])
@@ -837,7 +834,6 @@ class Node:
                 self.get_node_status()
                 return jsonify({"status": "Status information logged"}), 200
             except Exception as e:
-                self.log('i', f"Error handling /status: {e}")
                 return jsonify({"error": "Failed to retrieve status"}), 400
 
         @self.app.route('/delay/<int:seconds>', methods=['GET'])
@@ -846,7 +842,6 @@ class Node:
                 self.set_delay(seconds)
                 return jsonify({"status": f"Message delay set to {seconds} seconds"}), 200
             except Exception as e:
-                self.log('i', f"Error handling /delay/{seconds}: {e}")
                 return jsonify({"error": "Failed to set delay"}), 400
 
         @self.app.route('/misra', methods=['GET'])
@@ -857,7 +852,6 @@ class Node:
                 self.handle_misra(0)
                 return jsonify({"status": "Misra termination detection initiated"}), 200
             except Exception as e:
-                self.log('i', f"Error handling /misra: {e}")
                 return jsonify({"error": "Failed to initiate Misra termination detection"}), 400
 
     def start_rest_api(self):
