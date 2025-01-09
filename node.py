@@ -7,6 +7,7 @@ import time
 import queue
 import json
 import typing
+from flask import Flask, jsonify, request
 
 class Message(typing.TypedDict):
     sender_id: int
@@ -78,6 +79,10 @@ class Node:
         self.monitor_predecessor_heartbeat_thread = None
         self.misra_process_color = 'black'
         self.misra_marker_present = False
+
+        self.app = Flask(__name__)
+        self.rest_api_thread = None
+        self.setup_rest_routes()
 
     # IP ADDRESS AND NODE ID
 
@@ -247,6 +252,7 @@ class Node:
         self.probe_for_successor()
         self.start_work_processor()
         self.start_heartbeat_checking_and_sending()
+        self.start_rest_api()
         self.log('t', "Node has joined the topology.")
 
     def start_networking(self):
@@ -784,6 +790,78 @@ class Node:
         self.start_socket()
         self.handle_cli()
         self.log('i', f"Node {self.id} is ready to accept commands...")
+
+    # REST API
+
+    def setup_rest_routes(self):
+        """Defines the REST API routes."""
+        @self.app.route('/count/<int:goal>', methods=['GET'])
+        def count(goal):
+            if not self.online:
+                return jsonify({"error": "Node is offline"}), 400
+            try:
+                self.handle_received_count_task(1, goal)
+                return jsonify({"status": "count task enqueued", "goal": goal}), 200
+            except Exception as e:
+                self.log('i', f"Error handling /count/{goal}: {e}")
+                return jsonify({"error": "Failed to enqueue count task"}), 400
+
+        @self.app.route('/join', methods=['POST'])
+        def join_route():
+            if self.online:
+                return jsonify({"error": "Node is already online"}), 400
+            try:
+                self.join()
+                return jsonify({"status": "Node joined the topology"}), 200
+            except Exception as e:
+                self.log('i', f"Error handling /join: {e}")
+                return jsonify({"error": "Failed to join the topology"}), 400
+
+        @self.app.route('/leave', methods=['POST'])
+        def leave_route():
+            if not self.online:
+                return jsonify({"error": "Node is already offline"}), 400
+            try:
+                self.leave()
+                return jsonify({"status": "Node left the topology"}), 200
+            except Exception as e:
+                self.log('i', f"Error handling /leave: {e}")
+                return jsonify({"error": "Failed to leave the topology"}), 400
+
+        @self.app.route('/status', methods=['GET'])
+        def status():
+            try:
+                self.get_node_status()
+                return jsonify({"status": "Status information logged"}), 200
+            except Exception as e:
+                self.log('i', f"Error handling /status: {e}")
+                return jsonify({"error": "Failed to retrieve status"}), 400
+
+        @self.app.route('/delay/<int:seconds>', methods=['POST'])
+        def set_delay_route(seconds):
+            try:
+                self.set_delay(seconds)
+                return jsonify({"status": f"Message delay set to {seconds} seconds"}), 200
+            except Exception as e:
+                self.log('i', f"Error handling /delay/{seconds}: {e}")
+                return jsonify({"error": "Failed to set delay"}), 400
+
+        @self.app.route('/misra', methods=['POST'])
+        def misra_route():
+            try:
+                self.handle_misra(0)
+                return jsonify({"status": "Misra termination detection initiated"}), 200
+            except Exception as e:
+                self.log('i', f"Error handling /misra: {e}")
+                return jsonify({"error": "Failed to initiate Misra termination detection"}), 400
+
+    def start_rest_api(self):
+        self.rest_api_thread = threading.Thread(target=self.run_rest_api, daemon=True)
+        self.rest_api_thread.start()
+
+    def run_rest_api(self):
+        self.app.run(host='0.0.0.0', port=8080, threaded=True, use_reloader=False)
+
 
 # Main Function
 if __name__ == "__main__":
