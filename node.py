@@ -252,7 +252,6 @@ class Node:
         self.probe_for_successor()
         self.start_work_processor()
         self.start_heartbeat_checking_and_sending()
-        self.start_rest_api()
         self.log('t', "Node has joined the topology.")
 
     def start_networking(self):
@@ -465,13 +464,7 @@ class Node:
                 if command == "join":
                     self.join()
                 elif command == "leave":
-                    self.log('t', 'Initiating removal of ourselves from the topology.')
-                    if self.successor_id is not None:
-                        new_topology = self.topology[:]
-                        new_topology.remove(self.id)
-                        self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', json.dumps(new_topology))
-                    else:
-                        self.leave()
+                    self.leave_command()
                 elif command == "status":
                     self.get_node_status()
                 elif command == "delay":
@@ -493,6 +486,15 @@ class Node:
                 sys.exit(0)
             except Exception as e:
                 self.log('i', f"Issue with command. Try again")
+
+    def leave_command(self):
+        self.log('t', 'Initiating removal of ourselves from the topology.')
+        if self.successor_id is not None:
+            new_topology = self.topology[:]
+            new_topology.remove(self.id)
+            self.build_and_enqueue_message(self.successor_id, 'TOPOLOGY_UPDATE', json.dumps(new_topology))
+        else:
+            self.leave()
 
     def change_console_logging(self, line):
         sign = line[0]
@@ -788,6 +790,7 @@ class Node:
 
     def start(self):
         self.start_socket()
+        self.start_rest_api()
         self.handle_cli()
         self.log('i', f"Node {self.id} is ready to accept commands...")
 
@@ -822,7 +825,7 @@ class Node:
             if not self.online:
                 return jsonify({"error": "Node is already offline"}), 400
             try:
-                self.leave()
+                self.leave_command()
                 return jsonify({"status": "Node left the topology"}), 200
             except Exception as e:
                 self.log('i', f"Error handling /leave: {e}")
