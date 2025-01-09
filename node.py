@@ -799,7 +799,11 @@ class Node:
     # REST API
 
     def setup_rest_routes(self):
-        """Defines the REST API routes."""
+
+        @self.app.before_request
+        def log_request():
+            self.log('c', f"Request received: {request.path}")
+
         @self.app.route('/count/<int:goal>', methods=['GET'])
         def count(goal):
             if not self.online:
