@@ -39,15 +39,6 @@ logging.basicConfig(
     format="%(levelname)s\tNode: %(node_id)s\tLogical Clock: %(clock)s\t%(message)s",
 )
 logger = logging.getLogger()
-class ContextFilter(logging.Filter):
-    def filter(self, record):
-        if not hasattr(record, 'node_id'):
-            record.node_id = 'N/A'
-        if not hasattr(record, 'clock'):
-            record.clock = 'N/A'
-        return True
-context_filter = ContextFilter()
-logger.addFilter(context_filter)
 CAT_LABELS = {
     'h': 'HEARTBEAT',
     'm': 'MISRA',
@@ -90,6 +81,8 @@ class Node:
         self.misra_marker_present = False
 
         self.app = Flask(__name__)
+        log = logging.getLogger('werkzeug')
+        log.disabled = True
         self.rest_api_thread = None
         self.setup_rest_routes()
 
